@@ -1,0 +1,12 @@
+# Enable C++ support
+language: cpp
+cache: ccache
+# OS
+sudo: required
+dist: trusty
+# Compiler selection
+compiler:
+  - clang
+  - gcc
+# Build steps
+script: ./make-ci.sh
