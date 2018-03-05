@@ -13,35 +13,29 @@
 #include <common.h>
 #include <resolver.h>
 #include <md5.h>
+
+#include <redis.h>
 #include <json.h>
 
-#include <redox.hpp>
-
 const char *progname = "check_runlevel";
-const char *NP_VERSION = "1.0.0";
+const char *version = "1.0.0";
 const char *copyright = "2018";
-const char *email = "bodo@boone-schulz-de";
+const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
 int process_arguments (int, char **);
 int validate_arguments (void);
-int check( const std::string server_name, const std::string application );
+int check( const std::string server_name, const std::string content_server );
 bool in_array(const std::string &value, const std::vector<std::string> &array);
 void print_help (void);
 void print_usage (void);
 
 char *redis_server = NULL;
 char *server_name = NULL;
-char *application = NULL;
-bool verbose = false;
+char *content_server = NULL;
 
-using namespace redox;
-using nlohmann::json;
-
-/*
-  opts.on('-h', '--host NAME'       , 'Host with running Application')                   { |v| options[:host]  = v }
-  opts.on('-a', '--application APP' , 'Name of the running Application')                 { |v| options[:application]  = v }
-*/
-
+/**
+ *
+ */
 int main(int argc, char **argv) {
 
   int result = STATE_UNKNOWN;
@@ -53,62 +47,32 @@ int main(int argc, char **argv) {
     return STATE_UNKNOWN;
   }
 
-  result = check( server_name, application );
+  result = check( server_name, content_server );
 
   return result;
 }
 
-
-int check( const std::string server_name, const std::string application ) {
-
-  /**
-   * calculate the cache key for the data in our redis */
-  std::map<std::string,std::string> d;
-  std::map<std::string,std::string>::iterator it;
-
-  // cacheKey = Storage::RedisClient.cacheKey( { :host => host, :pre => 'result', :service => service } )
-
-  d["service"] = application;
-  d["host"] = server_name;
-  d["pre"] = "result";
-
-  std::string cache_key;
-  std::string cache_key_md5;
-
-  // {:host=>"osmc.local", :pre=>"result", :service=>"caefeeder-live"}
-  cache_key = "{";
-  if( d.size() > 0 ) {
-    for( it = d.begin(); it != d.end(); ++it ) {
-      cache_key.append( ":" + it->first ); // string (key)
-      cache_key.append( "=>" );
-      cache_key.append( "\"" + it->second + "\"" );  // string's value
-
-      if(std::distance(it,d.end())>1) {
-        cache_key.append(", ");
-      }
-    }
-  }
-  cache_key.append("}");
-  cache_key_md5 = md5(cache_key);
+/**
+ *
+ */
+int check( const std::string server_name, const std::string content_server ) {
 
   int state = STATE_UNKNOWN;
 
-  Redox rdx( std::cerr, log::Off);
+  Redis r(redis_server, 6379);
+  std::string cache_key = r.cache_key( server_name, content_server );
 
-  if(!rdx.connect(redis_server, 6379)) {
+  std::cout << cache_key << std::endl;
 
-    std::cout << "ERROR - Could not connect to Redis: Connection refused." << std::endl;
-    return STATE_CRITICAL;
+  std::string redis_data;
+  if( r.get(cache_key, redis_data) == false ) {
+    std::cout << "WARNING - no data in our data store found."  << std::endl;
+    return STATE_WARNING;
   }
-
-  // we use a named database ...
-  rdx.commandSync<std::string>({"SELECT", "1"});
 
   try {
 
-    auto x = rdx.get(cache_key_md5);
-
-    Json json(x);
+    Json json(redis_data);
 
     std::string runlevel = "";
     int runlevel_numeric = 0;
@@ -144,28 +108,27 @@ int check( const std::string server_name, const std::string application ) {
 
   } catch(...) {
 
-    std::cout << "WARNING - no data in our data store found."  << std::endl;
-
-    state = STATE_WARNING;
+    std::cout << "WARNING - parsing of json is corrupt."  << std::endl;
+    return STATE_WARNING;
   }
-
-  rdx.disconnect();
 
   return(state);
 }
 
 
-/* process command-line arguments */
+/*
+ * process command-line arguments
+ */
 int process_arguments (int argc, char **argv) {
 
   int opt = 0;
-  const char* const short_opts = "hVR:H:a:";
+  const char* const short_opts = "hVR:H:C:";
   const option long_opts[] = {
     {"help"       , no_argument      , nullptr, 'h'},
     {"version"    , no_argument      , nullptr, 'V'},
     {"redis"      , required_argument, nullptr, 'R'},
     {"hostname"   , required_argument, nullptr, 'H'},
-    {"application", required_argument, nullptr, 'a'},
+    {"contentserver", required_argument, nullptr, 'C'},
     {nullptr      , 0, nullptr, 0}
   };
 
@@ -176,36 +139,38 @@ int process_arguments (int argc, char **argv) {
   while((opt = getopt_long(argc, argv, short_opts, long_opts, &long_index)) != -1) {
 
     switch (opt) {
-      case 'h':                  /* help */
-        print_usage();
+      case 'h':
         print_help();
         exit(STATE_UNKNOWN);
-      case 'V':                  /* version */
-        print_revision (progname, NP_VERSION);
+      case 'V':
+        std::cout << progname << " v" << version << std::endl;
         exit(STATE_UNKNOWN);
-      case 'R':                  /* redis */
+      case 'R':
         redis_server = optarg;
         break;
-      case 'H':                  /* host */
+      case 'H':
         server_name = optarg;
         break;
-      case 'a':                  /* application */
-        application = optarg;
+      case 'C':
+        content_server = optarg;
         break;
       default:
         print_usage();
-        break;
+        exit(STATE_UNKNOWN);
     }
   }
 
   return validate_arguments();
 }
 
+/**
+ *
+ */
 int validate_arguments(void) {
 
-  if(redis_server != NULL) {
+  Resolver resolver;
 
-    Resolver resolver;
+  if(redis_server != NULL) {
 
     if(resolver.is_host(redis_server) == false) {
       std::cout << progname << " Invalid redis host or address " << optarg << std::endl;
@@ -218,8 +183,6 @@ int validate_arguments(void) {
 
   if(server_name != NULL) {
 
-    Resolver resolver;
-
     if(resolver.is_host(server_name) == false) {
       std::cout << progname << " Invalid hostname or address " << optarg << std::endl;
       return ERROR;
@@ -229,84 +192,68 @@ int validate_arguments(void) {
     return ERROR;
   }
 
-/*
-  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"content-management-server"}
-  redis cache_key: 4583589d6518613d423a47fb5909b1fe
-  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"master-live-server"}
-  redis cache_key: f6543a8a5390117b6867886c0f2390c9
-  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"workflow-server"}
-  redis cache_key: 80a8df93a48388d1b4045a5a7389d523
-  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"content-feeder"}
-  redis cache_key: 9a0f1622748fa0dea01e5a63a779d5a6
-  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"user-changes"}
-  redis cache_key: 3c3ff8787f47660e414832122e387da8
-  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"elastic-worker"}
-  redis cache_key: de62ce017cd797f3057f520f24faa5ac
-  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"caefeeder-preview"}
-  redis cache_key: d3495b309aa92e41c5c9dd8f98ee3f97
-  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"caefeeder-live"}
-  redis cache_key: a5783769d8d36c6375e6128829abedc4
-  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"cae-preview"}
-  redis cache_key: d143579c9e5de311f911c45c1f2e4502
-  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"studio"}
-  redis cache_key: ae43845307ff9148c7944629ec9b3c45
-  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"sitemanager"}
-  redis cache_key: 812b84d2dfee88a5e954b848444f09f5
-  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"replication-live-server"}
-  redis cache_key: 19745983dd637044b2e3d9790ff041b0
-  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"cae-live"}
-*/
+  if(content_server != NULL)  {
 
+    std::vector<std::string> srv = { "content-management-server", "master-live-server", "replication-live-server" };
 
-  /**
-   * TODO
-   *  valid application are:
-   *   - content-management-server
-   *   - master-live-server
-   *   - replication-live-server
-   */
-
-  if(application != NULL)  {
-
-    std::vector<std::string> content_server = { "content-management-server", "master-live-server", "replication-live-server" };
-
-    if( in_array( application, content_server )) {
+    if( in_array( content_server, srv )) {
       return OK;
     } else {
-      std::cerr << "'" << application << "' is no valid content server!" << std::endl;
+      std::cerr << "'" << content_server << "' is no valid content server!" << std::endl;
       return ERROR;
     }
 
   } else {
-    std::cerr << "missing 'application' argument." << std::endl;
+    std::cerr << "missing 'contentserver' argument." << std::endl;
     return ERROR;
   }
 
   return OK;
 }
 
-
-
+/**
+ *
+ */
 void print_help (void) {
 
-  printf ("%s v%s (%s %s)\n", progname, NP_VERSION, PACKAGE, VERSION);
+  std::cout << std::endl;
+  std::cout << progname << " v" << version << std::endl;
+  std::cout << "  Copyright (c) " << copyright << " " << email << std::endl;
+  std::cout << std::endl;
+  std::cout << "This plugin will return the runlevel state corresponding to the content server" << std::endl;
+  std::cout << "valid content server are:" << std::endl;
+  std::cout << "  - content-management-server, " << std::endl;
+  std::cout << "  - master-live-server and " << std::endl;
+  std::cout << "  - replication-live-server" << std::endl;
+  print_usage();
+  std::cout << "Options:" << std::endl;
+  std::cout << " -h, --help" << std::endl;
+  std::cout << "    Print detailed help screen" << std::endl;
+  std::cout << " -V, --version" << std::endl;
+  std::cout << "    Print version information" << std::endl;
 
-//   print_revision (progname, NP_VERSION);
-  printf (COPYRIGHT, copyright, email);
+  std::cout << " -R, --redis" << std::endl;
+  std::cout << "    the redis service who stored the measurements data." << std::endl;
+  std::cout << " -H, --hostname" << std::endl;
+  std::cout << "    the host to be checked." << std::endl;
+  std::cout << " -C, --contentserver" << std::endl;
+  std::cout << "    the content server." << std::endl;
 
-  printf ("%s\n", ("This plugin will simply return the state corresponding to the numeric value"));
-  printf ("%s\n", ("of the <state> argument with optional text"));
-  printf ("\n\n");
-  print_usage ();
-  printf (UT_HELP_VRSN);
 }
 
+/**
+ *
+ */
 void print_usage (void) {
-  printf ("%s\n", ("Usage:"));
-  printf (" %s -R <redis_server> -H <host_name> -a <application name>\n", progname);
+  std::cout << std::endl;
+  std::cout << "Usage:" << std::endl;
+  std::cout << " " << progname << " -R <redis_server> -H <hostname> -C <content server>"  << std::endl;
+  std::cout << std::endl;
 }
 
-
+/**
+ *
+ */
 bool in_array(const std::string &value, const std::vector<std::string> &array) {
   return std::find(array.begin(), array.end(), value) != array.end();
 }

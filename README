@@ -1,0 +1,29 @@
+
+
+/*
+  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"content-management-server"}
+  redis cache_key: 4583589d6518613d423a47fb5909b1fe
+  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"master-live-server"}
+  redis cache_key: f6543a8a5390117b6867886c0f2390c9
+  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"workflow-server"}
+  redis cache_key: 80a8df93a48388d1b4045a5a7389d523
+  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"content-feeder"}
+  redis cache_key: 9a0f1622748fa0dea01e5a63a779d5a6
+  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"user-changes"}
+  redis cache_key: 3c3ff8787f47660e414832122e387da8
+  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"elastic-worker"}
+  redis cache_key: de62ce017cd797f3057f520f24faa5ac
+  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"caefeeder-preview"}
+  redis cache_key: d3495b309aa92e41c5c9dd8f98ee3f97
+  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"caefeeder-live"}
+  redis cache_key: a5783769d8d36c6375e6128829abedc4
+  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"cae-preview"}
+  redis cache_key: d143579c9e5de311f911c45c1f2e4502
+  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"studio"}
+  redis cache_key: ae43845307ff9148c7944629ec9b3c45
+  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"sitemanager"}
+  redis cache_key: 812b84d2dfee88a5e954b848444f09f5
+  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"replication-live-server"}
+  redis cache_key: 19745983dd637044b2e3d9790ff041b0
+  plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"cae-live"}
+*/
