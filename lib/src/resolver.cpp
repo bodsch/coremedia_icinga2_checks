@@ -49,6 +49,8 @@ int Resolver::ip(const char *hostname, char *ip) {
     strcpy(ip , inet_ntoa(*addr_list[i]) );
     return 0;
   }
+
+  return 0;
 }
 
 
@@ -71,7 +73,7 @@ int Resolver::is_host(const std::string address) {
 //   std::cout << "addr " << (_addr ? "true" : "false") << std::endl;
 //   std::cout << "host " << (_host ? "true" : "false") << std::endl;
 
-  if( is_addr(address) || is_hostname(address) )
+  if( _addr || _host )
     return true;
 
   return false;

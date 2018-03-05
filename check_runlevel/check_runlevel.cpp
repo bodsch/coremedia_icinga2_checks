@@ -10,27 +10,26 @@
 #include <map>
 #include <getopt.h>
 
-// #include <hiredis/hiredis.h>
-
 #include <common.h>
 #include <resolver.h>
 #include <md5.h>
+#include <json.h>
+
 #include <redox.hpp>
 
-#include <nlohmann/json.hpp>
-
 const char *progname = "check_runlevel";
-const char *NP_VERSION = "0.0.1";
+const char *NP_VERSION = "1.0.0";
 const char *copyright = "2018";
 const char *email = "bodo@boone-schulz-de";
 
 int process_arguments (int, char **);
 int validate_arguments (void);
-void replaceAll(std::string& str, const std::string& from, const std::string& to);
 int check( const std::string server_name, const std::string application );
+bool in_array(const std::string &value, const std::vector<std::string> &array);
 void print_help (void);
 void print_usage (void);
 
+char *redis_server = NULL;
 char *server_name = NULL;
 char *application = NULL;
 bool verbose = false;
@@ -48,83 +47,15 @@ int main(int argc, char **argv) {
   int result = STATE_UNKNOWN;
 
   if( process_arguments(argc, argv) == ERROR ) {
-    std::cout << "Could not parse arguments"  << std::endl;
+//     std::cout << "Could not parse arguments"  << std::endl;
+    std::cout << std::endl;
+    print_usage();
     return STATE_UNKNOWN;
   }
 
   result = check( server_name, application );
 
   return result;
-}
-
-
-int main_new(int argc, char **argv) {
-
-  std::map<std::string,std::string> d;
-  std::map<std::string,std::string>::iterator it;
-
-  d["service"] = "foo";
-  d["host"] = "osmc.local";
-  d["pre"] = "result";
-
-//  std::cout << d.size() << std::endl;
-
-  std::string cache_key = "{";
-
-  if( d.size() > 0 ) {
-
-    for( it = d.begin(); it != d.end(); ++it ) {
-      cache_key.append( "\"" + it->first + "\"" ); // string (key)
-      cache_key.append( "=>" );
-      cache_key.append( "\"" + it->second + "\"" );  // string's value
-
-      if(std::distance(it,d.end())>1) {
-        cache_key.append(", ");
-      }
-    }
-  }
-
-  cache_key.append("}");
-
-  std::cout << cache_key << std::endl;
-  std::cout << "md5 checksum: " << md5(cache_key) << std::endl;
-
-  Resolver resolver;
-
-  char ip[100];
-  resolver.ip("osmc.local", ip);
-
-  std::cout << ip  << std::endl;
-
-
-//     unsigned int j;
-//     redisContext *c;
-//     redisReply *reply;
-//
-//     const char *hostname = (argc > 1) ? argv[1] : "127.0.0.1";
-//     int port = (argc > 2) ? atoi(argv[2]) : 6379;
-//
-//     struct timeval timeout = { 1, 500000 }; // 1.5 seconds
-//     c = redisConnectWithTimeout(hostname, port, timeout);
-//     if (c == NULL || c->err) {
-//         if (c) {
-//             printf("Connection error: %s\n", c->errstr);
-//             redisFree(c);
-//         } else {
-//             printf("Connection error: can't allocate redis context\n");
-//         }
-//         exit(1);
-//     }
-//
-//     /* PING server */
-//     reply = redisCommand(c,"PING");
-//     printf("PING: %s\n", reply->str);
-//     freeReplyObject(reply);
-
-
-
-
-  return 0;
 }
 
 
@@ -144,11 +75,8 @@ int check( const std::string server_name, const std::string application ) {
   std::string cache_key;
   std::string cache_key_md5;
 
-  cache_key = "{";
-
-
-
   // {:host=>"osmc.local", :pre=>"result", :service=>"caefeeder-live"}
+  cache_key = "{";
   if( d.size() > 0 ) {
     for( it = d.begin(); it != d.end(); ++it ) {
       cache_key.append( ":" + it->first ); // string (key)
@@ -163,161 +91,57 @@ int check( const std::string server_name, const std::string application ) {
   cache_key.append("}");
   cache_key_md5 = md5(cache_key);
 
-//   cache_key_md5 = "92b058dba63354f7a64da080556b0cd9";
-
-//   std::cout << cache_key << std::endl;
-//   std::cout << "md5 checksum: " << cache_key_md5 << std::endl;
-
   int state = STATE_UNKNOWN;
 
-  Redox rdx( std::cout, log::Error);
-  if(!rdx.connect("localhost", 6379)) return STATE_CRITICAL;
+  Redox rdx( std::cerr, log::Off);
+
+  if(!rdx.connect(redis_server, 6379)) {
+
+    std::cout << "ERROR - Could not connect to Redis: Connection refused." << std::endl;
+    return STATE_CRITICAL;
+  }
 
   // we use a named database ...
   rdx.commandSync<std::string>({"SELECT", "1"});
 
-//   rdx.set("hello", "world!");
-//   std::cout << "Hello, " << rdx.get("hello") << std::endl;
-
   try {
+
     auto x = rdx.get(cache_key_md5);
 
-    // replace some ruby specialist things
-    //
-    replaceAll(x, "=>", ":");
-    replaceAll(x, "nil", "\"\"");
+    Json json(x);
 
-    json j;
+    std::string runlevel = "";
+    int runlevel_numeric = 0;
+    json.find("Server", "RunLevel", runlevel);
+    json.find("Server", "RunLevelNumeric", runlevel_numeric);
 
-    try {
-      j = json::parse(x);
+    std::string status = "";
 
-    } catch (json::parse_error& e) {
-      // output exception information
-      std::cout << "message: " << e.what() << '\n'
-                << "exception id: " << e.id << '\n'
-                << "byte position of error: " << e.byte << std::endl;
-    } catch(...) {
-      std::cout << "ERROR - can\'t parse json."  << std::endl;
-      state = STATE_UNKNOWN;
-      return state;
+    if( runlevel_numeric == -1 ) {
+
+      if( runlevel_numeric == 0) { runlevel = "stopped"; state  = STATE_WARNING; }
+      else
+      if( runlevel_numeric == 1) { runlevel = "starting"; state  = STATE_UNKNOWN; }
+      else
+      if( runlevel_numeric == 2) { runlevel = "initializing"; state  = STATE_UNKNOWN; }
+      else
+      if( runlevel_numeric == 3) { runlevel = "running"; state  = STATE_OK; }
+      else { runlevel = "failed"; state  = STATE_CRITICAL; }
+
+    } else {
+
+      std::transform(runlevel.begin(), runlevel.end(), runlevel.begin(), ::tolower);
+
+      if(runlevel == "offline") { status = "CRITICAL"; state  = STATE_CRITICAL; }
+      else
+      if( runlevel == "online") { status = "OK"; state  = STATE_OK; }
+      else
+      if( runlevel == "administration") { status = "WARNING"; state  = STATE_WARNING; }
+      else { status = "CRITICAL"; state  = STATE_CRITICAL; }
     }
 
-    int size = j.size();
-/*
-//     std::cout << "size: " << size << std::endl;
-//    std::cout << std::setw(2) << j.dump(2) << std::endl;
+    std::cout << "Runlevel in <b>" << runlevel << "</b> Mode" << std::endl;
 
-    // type = j_string.type();
-    if( j.is_array() )
-      std::cout << "is a array" << std::endl;
-
-    if( j.is_string() )
-      std::cout << "is a string" << std::endl;
-
-    if( j.is_object() )
-      std::cout << "is a object" << std::endl;
-
-    if( j.is_null() )
-      std::cout << "is null" << std::endl;
-*/
-    json search;
-    for( int i = 0; i <= size; ++i) {
-      search = j.at(i);
-      // std::cout << j.at(i) << std::endl;
-      if ( search.find("Server") != search.end()) { break; }
-    }
-
-    std::cout << search.size() << std::endl;
-
-    if( search.size() == 1 ) {
-
-      json runlevel;
-      try {
-        runlevel = search["Server"]["value"];
-//         std::cout << runlevel.dump(2) << std::endl;
-
-        // get am iterator to the first element
-        json::iterator it = runlevel.begin();
-
-        runlevel = runlevel[it.key()];
-
-        // serialize the element that the iterator points to
-//         std::cout << it.key() << '\n';
-
-        std::cout << runlevel.dump(2) << std::endl;
-
-        auto ss = runlevel.find("Runlevel");
-
-        std::cout << *ss << std::endl;
-
-      //  std::transform(runlevel.begin(), runlevel.end(), runlevel.begin(), ::tolower);
-      } catch(...) {
-
-        std::cout << "ERROR - can't parse runlevel" << std::endl;
-        state = STATE_CRITICAL;
-        return state;
-      }
-
-//      std::cout << runlevel << std::endl;
-    }
-/*
-    if (j.at(1).find("Memory") != j.end()) {
-      std::cout << " there is an entry with key 'Memory'" << std::endl;
-    }
-
-    json::iterator it;
-    for (it = j.begin(); it != j.end(); ++it) {
-
-      std::cout << it.key() << " : " << it.value() << "\n";
-//      if ( it.find("Memory") != it.end()) {
-//        std::cout << " there is an entry with key 'Memory'" << std::endl;
-//      }
-    }
-*/
-/*
-    for (json::iterator it = j.begin(); it != j.end(); ++it) {
-      std::cout << it.key() << " : " << it.value() << "\n";
-    }
-
-// Enumerate all keys (including sub-keys -- not working)
-  for (auto it=j.begin(); it!=j.end(); it++) {
-    std::cout << "key: " << it.key() << " : " << it.value() << std::endl;
-  }
-*/
-/*
-      std::string d = j.dump();
-      std::cout << d << std::endl;
-
-      auto j3 = json::parse(d);
-      if( j3.is_array() )
-        std::cout << "is a array" << std::endl;
-
-      if( j3.is_string() )
-        std::cout << "is a string" << std::endl;
-
-      if( j3.is_object() )
-        std::cout << "is a object" << std::endl;
-
-      if( j3.is_null() )
-        std::cout << "is null" << std::endl;
-*/
-
-
-
-
-//       json js = json::parse(j);
-
-/*
-      for (json::iterator it = j.begin(); it != j.end(); ++it) {
-        std::cout << it.key() << " : " << it.value() << "\n";
-      }
-*/
-      //std::cout << "size " << j_string.type() << std::endl;
-
-
-
-    state = STATE_OK;
   } catch(...) {
 
     std::cout << "WARNING - no data in our data store found."  << std::endl;
@@ -330,25 +154,16 @@ int check( const std::string server_name, const std::string application ) {
   return(state);
 }
 
-void replaceAll(std::string& str, const std::string& from, const std::string& to) {
-    if(from.empty())
-        return;
-    size_t start_pos = 0;
-    while((start_pos = str.find(from, start_pos)) != std::string::npos) {
-        str.replace(start_pos, from.length(), to);
-        start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
-    }
-}
-
 
 /* process command-line arguments */
 int process_arguments (int argc, char **argv) {
 
   int opt = 0;
-  const char* const short_opts = "hVH:a:";
+  const char* const short_opts = "hVR:H:a:";
   const option long_opts[] = {
     {"help"       , no_argument      , nullptr, 'h'},
     {"version"    , no_argument      , nullptr, 'V'},
+    {"redis"      , required_argument, nullptr, 'R'},
     {"hostname"   , required_argument, nullptr, 'H'},
     {"application", required_argument, nullptr, 'a'},
     {nullptr      , 0, nullptr, 0}
@@ -368,6 +183,9 @@ int process_arguments (int argc, char **argv) {
       case 'V':                  /* version */
         print_revision (progname, NP_VERSION);
         exit(STATE_UNKNOWN);
+      case 'R':                  /* redis */
+        redis_server = optarg;
+        break;
       case 'H':                  /* host */
         server_name = optarg;
         break;
@@ -380,25 +198,37 @@ int process_arguments (int argc, char **argv) {
     }
   }
 
-//   std::cout << "server name: " << server_name << std::endl;
-//   std::cout << "application: " << application << std::endl;
-
   return validate_arguments();
 }
 
 int validate_arguments(void) {
+
+  if(redis_server != NULL) {
+
+    Resolver resolver;
+
+    if(resolver.is_host(redis_server) == false) {
+      std::cout << progname << " Invalid redis host or address " << optarg << std::endl;
+      return ERROR;
+    }
+  } else {
+    std::cerr << "missing 'redis' argument." << std::endl;
+    return ERROR;
+  }
 
   if(server_name != NULL) {
 
     Resolver resolver;
 
     if(resolver.is_host(server_name) == false) {
-      std::cout << progname << " Invalid hostname/address " << optarg << std::endl;
+      std::cout << progname << " Invalid hostname or address " << optarg << std::endl;
       return ERROR;
     }
   } else {
+    std::cerr << "missing 'hostname' argument." << std::endl;
     return ERROR;
   }
+
 /*
   plain cache_key: {:host=>"osmc.local", :pre=>"result", :service=>"content-management-server"}
   redis cache_key: 4583589d6518613d423a47fb5909b1fe
@@ -438,7 +268,17 @@ int validate_arguments(void) {
 
   if(application != NULL)  {
 
+    std::vector<std::string> content_server = { "content-management-server", "master-live-server", "replication-live-server" };
+
+    if( in_array( application, content_server )) {
+      return OK;
+    } else {
+      std::cerr << "'" << application << "' is no valid content server!" << std::endl;
+      return ERROR;
+    }
+
   } else {
+    std::cerr << "missing 'application' argument." << std::endl;
     return ERROR;
   }
 
@@ -463,5 +303,10 @@ void print_help (void) {
 
 void print_usage (void) {
   printf ("%s\n", ("Usage:"));
-  printf (" %s <integer state> [optional text]\n", progname);
+  printf (" %s -R <redis_server> -H <host_name> -a <application name>\n", progname);
+}
+
+
+bool in_array(const std::string &value, const std::vector<std::string> &array) {
+  return std::find(array.begin(), array.end(), value) != array.end();
 }
