@@ -62,8 +62,6 @@ int check( const std::string server_name, const std::string content_server ) {
   Redis r(redis_server, 6379);
   std::string cache_key = r.cache_key( server_name, content_server );
 
-  std::cout << cache_key << std::endl;
-
   std::string redis_data;
   if( r.get(cache_key, redis_data) == false ) {
     std::cout << "WARNING - no data in our data store found."  << std::endl;

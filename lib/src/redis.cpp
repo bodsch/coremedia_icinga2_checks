@@ -15,7 +15,6 @@ std::string Redis::cache_key(const std::string hostname, const std::string servi
   d["pre"] = "result";
 
   std::string key;
-  std::string key_md5;
 
   // {:host=>"osmc.local", :pre=>"result", :service=>"caefeeder-live"}
   key = "{";
@@ -31,9 +30,7 @@ std::string Redis::cache_key(const std::string hostname, const std::string servi
     }
   }
   key.append("}");
-  key_md5 = md5(key);
-
-  return key_md5;
+  return md5(key);
 }
 
 

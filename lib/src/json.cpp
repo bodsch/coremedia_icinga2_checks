@@ -32,6 +32,21 @@ void Json::find(const std::string base, const std::string search, int &result) {
 }
 
 /**
+ * search an json object from type nlohmann::json
+ */
+void Json::find(const std::string base, const std::string search, nlohmann::json &result) {
+
+  nlohmann::json j = string2json(_json);
+  nlohmann::json v = json_value(j, base);
+
+  try {
+    result = v[search];
+  } catch(...) {
+    result = -1;
+  }
+}
+
+/**
  * search an json object
  */
 nlohmann::json Json::find(const std::string base, const std::string search) {
@@ -44,7 +59,6 @@ nlohmann::json Json::find(const std::string base, const std::string search) {
   } catch(...) {
     r = -1;
   }
-
   return r;
 }
 
@@ -69,11 +83,17 @@ nlohmann::json Json::json_value(nlohmann::json j, std::string s) {
     try {
       value = search[s]["value"];
 
+//       std::cout << value << std::endl;
+
       // get am iterator to the first element
       nlohmann::json::iterator it = value.begin();
 
-      value = value[it.key()];
-    }catch (nlohmann::json::parse_error& e) {
+
+      if(it.key().find("com.coremedia:application") != std::string::npos) {
+        //std::cout << ".. found.";
+        value = value[it.key()];
+      }
+    } catch (nlohmann::json::parse_error& e) {
       // output exception information
       std::cout << "message: " << e.what() << '\n'
                 << "exception id: " << e.id << '\n'

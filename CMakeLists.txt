@@ -31,10 +31,14 @@ set(LIB_INCLUDES
 )
 
 file(GLOB CHECK_RUNLEVEL check_runlevel/*.cpp)
+file(GLOB CHECK_TOMCAT_MEMORY check_tomcat_memory/*.cpp)
+
 add_executable(check_runlevel ${CHECK_RUNLEVEL})
+add_executable(check_tomcat_memory ${CHECK_TOMCAT_MEMORY})
+
 include_directories(${LIB_INCLUDES})
 find_library(REDOX libredox.so PATHS 3rdParty/redox/build/)
-# find_library(HIREDIS libhiredis.so PATHS /usr/lib64)
-# find_library(EV libev.so PATHS /usr/lib64)
+
 
 target_link_libraries(check_runlevel corelib ${REDOX} ${HIREDIS} ${EV})
+target_link_libraries(check_tomcat_memory corelib ${REDOX} ${HIREDIS} ${EV})

@@ -72,3 +72,28 @@ int is_integer (char *number) {
 	else
 		return FALSE;
 }
+
+
+
+int is_intneg (char *number){
+	if (is_integer (number) && atoi (number) < 0)
+		return TRUE;
+	else
+		return FALSE;
+}
+
+int is_intnonneg (char *number) {
+	if (is_integer (number) && atoi (number) >= 0)
+		return TRUE;
+	else
+		return FALSE;
+}
+
+int is_intpercent (char *number) {
+	int i;
+	if (is_integer (number) && (i = atoi (number)) >= 0 && i <= 100)
+		return TRUE;
+	else
+		return FALSE;
+}
+

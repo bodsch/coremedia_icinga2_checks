@@ -65,5 +65,8 @@ void print_revision(const char *, const char *);
 void usage(const char *msg);
 void usage_va(const char *fmt, ...) __attribute__((noreturn));
 int is_integer (char *number);
+int is_intneg (char *number);
+int is_intnonneg (char *number);
+int is_intpercent (char *number);
 
 #endif /* _COMMON_H_ */
