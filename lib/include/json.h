@@ -19,6 +19,7 @@ class Json {
     void              find(const std::string base, nlohmann::json &result);
     void              find(const std::string base, const std::string search, std::string &result);
     void              find(const std::string base, const std::string search, int &result);
+    void              find(const std::string base, const std::string search, long &result);
     void              find(const std::string base, const std::string search, nlohmann::json &result);
     void              find(const std::string base, const std::string search, bool &result);
     nlohmann::json    find(const std::string base, const std::string search);

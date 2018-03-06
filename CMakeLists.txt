@@ -79,3 +79,8 @@ file(GLOB CHECK_FEEDER_STATUS check_feeder_status/*.cpp)
 add_executable(check_feeder_status ${CHECK_FEEDER_STATUS})
 target_link_libraries(check_feeder_status corelib ${LIB_REDOX} ${LIB_EV})
 
+
+file(GLOB CHECK_LICENSE check_license/*.cpp)
+add_executable(check_license ${CHECK_LICENSE})
+target_link_libraries(check_license corelib ${LIB_REDOX} ${LIB_EV})
+

@@ -191,9 +191,13 @@ int validate_arguments(void) {
 
   if(content_server != NULL)  {
 
-    std::vector<std::string> srv = { "content-management-server", "master-live-server", "replication-live-server" };
+    std::vector<std::string> app = {
+      "content-management-server",
+      "master-live-server",
+      "replication-live-server"
+    };
 
-    if( in_array( content_server, srv )) {
+    if( in_array( content_server, app )) {
       return OK;
     } else {
       std::cerr << "'" << content_server << "' is no valid content server!" << std::endl;

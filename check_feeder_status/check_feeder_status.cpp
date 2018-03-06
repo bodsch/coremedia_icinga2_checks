@@ -205,11 +205,6 @@ int cae_feeder( Json json ) {
     return STATE_CRITICAL;
   }
 
-//   nlohmann::json j;
-//
-//   json.find("ProactiveEngine",j);
-//   std::cout << j.dump(2) << std::endl;
-
   int max_entries = 0;
   int current_entries = 0;
   int heartbeat = 0;
@@ -395,11 +390,8 @@ int validate_arguments(void) {
     return ERROR;
   }
 
-  if( warn_percent < crit_percent ) {
-    std::cout << "Warning percentage should be more than critical percentage" << std::endl;
-  } else
   if( warning < critical ) {
-    std::cout << "Warning free space should be more than critical free space" << std::endl;
+    std::cout << "Warning should be more than critical" << std::endl;
   }
 
   return OK;
