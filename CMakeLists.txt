@@ -52,19 +52,30 @@ set(INCLUDE_PATH
 find_library(LIB_REDOX libredox.so ${INCLUDE_PATH})
 find_library(LIB_EV libev.so ${INCLUDE_PATH})
 
-file(GLOB CHECK_RUNLEVEL check_runlevel/*.cpp)
-file(GLOB CHECK_TOMCAT_MEMORY check_tomcat_memory/*.cpp)
-file(GLOB CHECK_APP_CACHE check_app_cache/*.cpp)
-file(GLOB CHECK_CAP_CONNECTION check_capconnection/*.cpp)
-
-add_executable(check_runlevel ${CHECK_RUNLEVEL})
-add_executable(check_tomcat_memory ${CHECK_TOMCAT_MEMORY})
-add_executable(check_app_cache ${CHECK_APP_CACHE})
-add_executable(check_capconnection ${CHECK_CAP_CONNECTION})
-
 include_directories(${LIB_INCLUDES})
 
+
+file(GLOB CHECK_RUNLEVEL check_runlevel/*.cpp)
+add_executable(check_runlevel ${CHECK_RUNLEVEL})
 target_link_libraries(check_runlevel corelib ${LIB_REDOX} ${LIB_EV})
+
+
+file(GLOB CHECK_TOMCAT_MEMORY check_tomcat_memory/*.cpp)
+add_executable(check_tomcat_memory ${CHECK_TOMCAT_MEMORY})
 target_link_libraries(check_tomcat_memory corelib ${LIB_REDOX} ${LIB_EV})
+
+
+file(GLOB CHECK_APP_CACHE check_app_cache/*.cpp)
+add_executable(check_app_cache ${CHECK_APP_CACHE})
 target_link_libraries(check_app_cache corelib ${LIB_REDOX} ${LIB_EV})
+
+
+file(GLOB CHECK_CAP_CONNECTION check_capconnection/*.cpp)
+add_executable(check_capconnection ${CHECK_CAP_CONNECTION})
 target_link_libraries(check_capconnection corelib ${LIB_REDOX} ${LIB_EV})
+
+
+file(GLOB CHECK_FEEDER_STATUS check_feeder_status/*.cpp)
+add_executable(check_feeder_status ${CHECK_FEEDER_STATUS})
+target_link_libraries(check_feeder_status corelib ${LIB_REDOX} ${LIB_EV})
+

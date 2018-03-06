@@ -1,6 +1,16 @@
 
 #include "../include/json.h"
 
+
+/**
+ * search an json object from type nlohmann::json
+ */
+void Json::find(const std::string base, nlohmann::json &result) {
+
+  nlohmann::json j = string2json(_json);
+  result = json_value(j, base);
+}
+
 /**
  * search an json object from type string
  */
@@ -98,13 +108,10 @@ nlohmann::json Json::json_value(nlohmann::json j, std::string s) {
 
     try {
       value = search[s]["value"];
-
       // get am iterator to the first element
       nlohmann::json::iterator it = value.begin();
 
-
-      if(it.key().find("com.coremedia:application") != std::string::npos) {
-        //std::cout << ".. found.";
+      if(it.key().find("com.coremedia") != std::string::npos) {
         value = value[it.key()];
       }
     } catch (nlohmann::json::parse_error& e) {
