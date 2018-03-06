@@ -17,7 +17,7 @@
 #include <redis.h>
 #include <json.h>
 
-const char *progname = "check_tomcat_memory";
+const char *progname = "check_app_cache";
 const char *version = "1.0.0";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
@@ -31,7 +31,7 @@ void print_usage (void);
 char *redis_server = NULL;
 char *server_name = NULL;
 char *application = NULL;
-char *memory_type = NULL;
+char *cache_type = NULL;
 
 int warn_percent = 0;
 int crit_percent = 0;
@@ -47,13 +47,12 @@ int main(int argc, char **argv) {
   int result = STATE_UNKNOWN;
 
   if( process_arguments(argc, argv) == ERROR ) {
-//     std::cout << "Could not parse arguments"  << std::endl;
     std::cout << std::endl;
     print_usage();
     return STATE_UNKNOWN;
   }
 
-  result = check( server_name, application, memory_type );
+  result = check( server_name, application, cache_type );
 
   return result;
 }
@@ -76,38 +75,33 @@ int check( const std::string server_name, const std::string application, const s
 
   try {
 
-    std::string memory_type = "";
-    std::string memory_max_human_readable = "";
-    std::string memory_committed_human_readable = "";
-    std::string memory_used_human_readable = "";
+    std::string cache_type = "";
+    std::string cache_max_human_readable = "";
+    std::string cache_used_human_readable = "";
     std::string status = "";
 
     Json json(redis_data);
-    nlohmann::json memory = "";
+    int cache_max  = 0;
+    int cache_used = 0;
 
-    if(type == "heap-mem") {
-      json.find("Memory", "HeapMemoryUsage", memory);
-      memory_type = "Heap";
+    if(type == "uapi-cache") {
+      json.find("CapConnection", "HeapCacheSize", cache_max);
+      json.find("CapConnection", "HeapCacheLevel", cache_used);
+      cache_type = "UAPI";
     } else {
-      json.find("Memory", "NonHeapMemoryUsage", memory);
-      memory_type = "Perm";
+      json.find("CapConnection", "BlobCacheSize", cache_max);
+      json.find("CapConnection", "BlobCacheLevel", cache_used);
+      cache_type = "BLOB";
     }
 
-//     std::cout << memory.dump(2) << std::endl;
-
-    int max = memory["max"];
-    uint used = memory["used"];
-    uint committed = memory["committed"];
     float percent;
 
-    percent = 100.0 * (float)used / (float)committed;
+    percent = 100.0 * (float)cache_used / (float)cache_max;
     percent = roundf(percent * 100) / 100;
 
     char buf[10];
-    if( max != -1 )
-      memory_max_human_readable = human_readable(max, buf);
-    memory_committed_human_readable = human_readable(committed, buf);
-    memory_used_human_readable      = human_readable(used, buf);
+    cache_max_human_readable = human_readable(cache_max, buf);
+    cache_used_human_readable = human_readable(cache_used, buf);
 
     // -------------------------------------------------------------------
 
@@ -123,33 +117,16 @@ int check( const std::string server_name, const std::string application, const s
       state = STATE_CRITICAL;
     }
 
-    if(type == "heap-mem") {
-
-      std::cout
-        << percent << "% " << memory_type << " Memory used"
-        << "<br>"
-        << "Max: " << memory_max_human_readable
-        << "<br>"
-        << "Commited: " << memory_committed_human_readable
-        << "<br>"
-        << "Used: " << memory_used_human_readable
-        << " |"
-        << " committed=" << committed
-        << " used=" << used
-        << std::endl;
-    } else {
-
-      std::cout
-        << percent << "% " << memory_type << " Memory used"
-        << "<br>"
-        << "Commited: " << memory_committed_human_readable
-        << "<br>"
-        << "Used: " << memory_used_human_readable
-        << " |"
-        << " committed=" << committed
-        << " used=" << used
-        << std::endl;
-    }
+    std::cout
+      << percent << "% " << cache_type << " Cache used"
+      << "<br>"
+      << "Max: " << cache_max_human_readable
+      << "<br>"
+      << "Used: " << cache_used_human_readable
+      << " |"
+      << " max=" << cache_max
+      << " used=" << cache_used
+      << std::endl;
 
   } catch(...) {
 
@@ -160,20 +137,23 @@ int check( const std::string server_name, const std::string application, const s
   return state;
 }
 
+
+
+
 /*
  * process command-line arguments
  */
 int process_arguments (int argc, char **argv) {
 
   int opt = 0;
-  const char* const short_opts = "hVR:H:A:M:w:c:";
+  const char* const short_opts = "hVR:H:A:C:w:c:";
   const option long_opts[] = {
     {"help"       , no_argument      , nullptr, 'h'},
     {"version"    , no_argument      , nullptr, 'V'},
     {"redis"      , required_argument, nullptr, 'R'},
     {"hostname"   , required_argument, nullptr, 'H'},
     {"application", required_argument, nullptr, 'A'},
-    {"memory"     , required_argument, nullptr, 'M'},
+    {"cache"      , required_argument, nullptr, 'C'},
     {"warning"    , required_argument, nullptr, 'w'},
     {"critical"   , required_argument, nullptr, 'c'},
     {nullptr      , 0, nullptr, 0}
@@ -201,8 +181,8 @@ int process_arguments (int argc, char **argv) {
       case 'A':
         application = optarg;
         break;
-      case 'M':
-        memory_type = optarg;
+      case 'C':
+        cache_type = optarg;
         break;
       case 'w':                  /* warning size threshold */
         if(is_intnonneg (optarg)) {
@@ -276,9 +256,6 @@ int validate_arguments(void) {
   if(application != NULL)  {
 
     std::vector<std::string> app = {
-      "content-management-server",
-      "master-live-server",
-      "replication-live-server",
       "workflow-server",
       "content-feeder",
       "user-changes",
@@ -303,19 +280,19 @@ int validate_arguments(void) {
     return ERROR;
   }
 
-  if(memory_type != NULL)  {
+  if(cache_type != NULL)  {
 
-    std::vector<std::string> srv = { "heap-mem","perm-mem" };
+    std::vector<std::string> srv = { "uapi-cache","blob-cache" };
 
-    if( in_array( memory_type, srv )) {
+    if( in_array( cache_type, srv )) {
       return OK;
     } else {
-      std::cerr << "'" << memory_type << "' is no valid memory type!" << std::endl;
+      std::cerr << "'" << cache_type << "' is no valid cache type!" << std::endl;
       return ERROR;
     }
 
   } else {
-    std::cerr << "missing 'memory' argument." << std::endl;
+    std::cerr << "missing 'cache' argument." << std::endl;
     return ERROR;
   }
 
@@ -342,9 +319,9 @@ void print_help (void) {
   std::cout << "  Copyright (c) " << copyright << " " << email << std::endl;
   std::cout << std::endl;
   std::cout << "This plugin will return the used tomcat memory corresponding to the content server" << std::endl;
-  std::cout << "valid memory types are:" << std::endl;
-  std::cout << "  - heap-mem and " << std::endl;
-  std::cout << "  - perm-mem" << std::endl;
+  std::cout << "valid cache types are:" << std::endl;
+  std::cout << "  - uapi-cache and " << std::endl;
+  std::cout << "  - blob-cache" << std::endl;
   print_usage();
   std::cout << "Options:" << std::endl;
   std::cout << " -h, --help" << std::endl;
@@ -358,8 +335,8 @@ void print_help (void) {
   std::cout << "    the host to be checked." << std::endl;
   std::cout << " -A, --application" << std::endl;
   std::cout << "    the name of the application" << std::endl;
-  std::cout << " -M, --memory" << std::endl;
-  std::cout << "    the tomcat memory type." << std::endl;
+  std::cout << " -C, --cache" << std::endl;
+  std::cout << "    the application cache type." << std::endl;
 
 }
 
@@ -369,6 +346,7 @@ void print_help (void) {
 void print_usage (void) {
   std::cout << std::endl;
   std::cout << "Usage:" << std::endl;
-  std::cout << " " << progname << " -R <redis_server> -H <hostname> -M <memory type>"  << std::endl;
+  std::cout << " " << progname << " -R <redis_server> -H <hostname> -C <cache type>"  << std::endl;
   std::cout << std::endl;
 }
+

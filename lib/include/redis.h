@@ -16,7 +16,7 @@
 class Redis {
 
   public:
-                      Redis(const std::string s, int p) { _server = s; _port = p; }
+                      Redis(const std::string s, int p = 6379) { _server = s; _port = p; }
 
     std::string       cache_key(const std::string hostname, const std::string service);
     bool              get(const std::string key, std::string &result);

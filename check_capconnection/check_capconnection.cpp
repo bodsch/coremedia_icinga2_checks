@@ -17,20 +17,20 @@
 #include <redis.h>
 #include <json.h>
 
-const char *progname = "check_runlevel";
+const char *progname = "check_capconnection";
 const char *version = "1.0.0";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
 int process_arguments (int, char **);
 int validate_arguments (void);
-int check( const std::string server_name, const std::string content_server );
+int check( const std::string server_name, const std::string application );
 void print_help (void);
 void print_usage (void);
 
 char *redis_server = NULL;
 char *server_name = NULL;
-char *content_server = NULL;
+char *application = NULL;
 
 /**
  *
@@ -40,13 +40,12 @@ int main(int argc, char **argv) {
   int result = STATE_UNKNOWN;
 
   if( process_arguments(argc, argv) == ERROR ) {
-//     std::cout << "Could not parse arguments"  << std::endl;
     std::cout << std::endl;
     print_usage();
     return STATE_UNKNOWN;
   }
 
-  result = check( server_name, content_server );
+  result = check( server_name, application );
 
   return result;
 }
@@ -54,12 +53,12 @@ int main(int argc, char **argv) {
 /**
  *
  */
-int check( const std::string server_name, const std::string content_server ) {
+int check( const std::string server_name, const std::string application ) {
 
   int state = STATE_UNKNOWN;
 
   Redis r(redis_server);
-  std::string cache_key = r.cache_key( server_name, content_server );
+  std::string cache_key = r.cache_key( server_name, application );
 
   std::string redis_data;
   if( r.get(cache_key, redis_data) == false ) {
@@ -71,37 +70,16 @@ int check( const std::string server_name, const std::string content_server ) {
 
     Json json(redis_data);
 
-    std::string runlevel = "";
-    int runlevel_numeric = 0;
-    json.find("Server", "RunLevel", runlevel);
-    json.find("Server", "RunLevelNumeric", runlevel_numeric);
+    bool cap_connection = false;
+    json.find("CapConnection", "Open", cap_connection);
 
-    std::string status = "";
-
-    if( runlevel_numeric == -1 ) {
-
-      if( runlevel_numeric == 0) { runlevel = "stopped"; state  = STATE_WARNING; }
-      else
-      if( runlevel_numeric == 1) { runlevel = "starting"; state  = STATE_UNKNOWN; }
-      else
-      if( runlevel_numeric == 2) { runlevel = "initializing"; state  = STATE_UNKNOWN; }
-      else
-      if( runlevel_numeric == 3) { runlevel = "running"; state  = STATE_OK; }
-      else { runlevel = "failed"; state  = STATE_CRITICAL; }
-
+    if( cap_connection == true ) {
+      state = STATE_OK;
     } else {
-
-      std::transform(runlevel.begin(), runlevel.end(), runlevel.begin(), ::tolower);
-
-      if(runlevel == "offline") { status = "CRITICAL"; state  = STATE_CRITICAL; }
-      else
-      if( runlevel == "online") { status = "OK"; state  = STATE_OK; }
-      else
-      if( runlevel == "administration") { status = "WARNING"; state  = STATE_WARNING; }
-      else { status = "CRITICAL"; state  = STATE_CRITICAL; }
+      state = STATE_CRITICAL;
     }
 
-    std::cout << "Runlevel in <b>" << runlevel << "</b> Mode" << std::endl;
+    std::cout << "Cap Connection <b>" << ( cap_connection ? "open" : "not exists" ) << "</b>" << std::endl;
 
   } catch(...) {
 
@@ -119,13 +97,13 @@ int check( const std::string server_name, const std::string content_server ) {
 int process_arguments (int argc, char **argv) {
 
   int opt = 0;
-  const char* const short_opts = "hVR:H:C:";
+  const char* const short_opts = "hVR:H:A:";
   const option long_opts[] = {
     {"help"       , no_argument      , nullptr, 'h'},
     {"version"    , no_argument      , nullptr, 'V'},
     {"redis"      , required_argument, nullptr, 'R'},
     {"hostname"   , required_argument, nullptr, 'H'},
-    {"contentserver", required_argument, nullptr, 'C'},
+    {"application", required_argument, nullptr, 'A'},
     {nullptr      , 0, nullptr, 0}
   };
 
@@ -148,8 +126,8 @@ int process_arguments (int argc, char **argv) {
       case 'H':
         server_name = optarg;
         break;
-      case 'C':
-        content_server = optarg;
+      case 'A':
+        application = optarg;
         break;
       default:
         print_usage();
@@ -189,19 +167,30 @@ int validate_arguments(void) {
     return ERROR;
   }
 
-  if(content_server != NULL)  {
+  if(application != NULL)  {
 
-    std::vector<std::string> srv = { "content-management-server", "master-live-server", "replication-live-server" };
+    std::vector<std::string> app = {
+      "workflow-server",
+      "content-feeder",
+      "user-changes",
+      "elastic-worker",
+      "caefeeder-preview",
+      "caefeeder-live",
+      "cae-preview",
+      "studio",
+      "sitemanager",
+      "cae-live"
+    };
 
-    if( in_array( content_server, srv )) {
+    if( in_array( application, app )) {
       return OK;
     } else {
-      std::cerr << "'" << content_server << "' is no valid content server!" << std::endl;
+      std::cerr << "'" << application << "' is no valid application!" << std::endl;
       return ERROR;
     }
 
   } else {
-    std::cerr << "missing 'contentserver' argument." << std::endl;
+    std::cerr << "missing 'application' argument." << std::endl;
     return ERROR;
   }
 
@@ -217,11 +206,18 @@ void print_help (void) {
   std::cout << progname << " v" << version << std::endl;
   std::cout << "  Copyright (c) " << copyright << " " << email << std::endl;
   std::cout << std::endl;
-  std::cout << "This plugin will return the runlevel state corresponding to the content server" << std::endl;
-  std::cout << "valid content server are:" << std::endl;
-  std::cout << "  - content-management-server, " << std::endl;
-  std::cout << "  - master-live-server and " << std::endl;
-  std::cout << "  - replication-live-server" << std::endl;
+  std::cout << "This plugin will return the cap connection state corresponding to the application" << std::endl;
+  std::cout << "valid applications are:" << std::endl;
+  std::cout << "  - workflow-server, " << std::endl;
+  std::cout << "  - content-feeder, " << std::endl;
+  std::cout << "  - user-changes, " << std::endl;
+  std::cout << "  - elastic-worker, " << std::endl;
+  std::cout << "  - caefeeder-preview, " << std::endl;
+  std::cout << "  - caefeeder-live, " << std::endl;
+  std::cout << "  - cae-preview, " << std::endl;
+  std::cout << "  - studio, " << std::endl;
+  std::cout << "  - sitemanager and" << std::endl;
+  std::cout << "  - cae-live" << std::endl;
   print_usage();
   std::cout << "Options:" << std::endl;
   std::cout << " -h, --help" << std::endl;
@@ -233,8 +229,8 @@ void print_help (void) {
   std::cout << "    the redis service who stored the measurements data." << std::endl;
   std::cout << " -H, --hostname" << std::endl;
   std::cout << "    the host to be checked." << std::endl;
-  std::cout << " -C, --contentserver" << std::endl;
-  std::cout << "    the content server." << std::endl;
+  std::cout << " -A, --application" << std::endl;
+  std::cout << "    the application name." << std::endl;
 
 }
 
@@ -244,6 +240,6 @@ void print_help (void) {
 void print_usage (void) {
   std::cout << std::endl;
   std::cout << "Usage:" << std::endl;
-  std::cout << " " << progname << " -R <redis_server> -H <hostname> -C <content server>"  << std::endl;
+  std::cout << " " << progname << " -R <redis_server> -H <hostname> -A <application>"  << std::endl;
   std::cout << std::endl;
 }

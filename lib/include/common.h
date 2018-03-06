@@ -7,6 +7,11 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_
 
+// find example
+#include <iostream>     // std::cout
+#include <algorithm>    // std::find
+#include <vector>       // std::vector
+
 #define COPYRIGHT "  Copyright (c) %s Bodo Schulz <%s>\n\n"
 
 #define UT_HLP_VRS ("\
@@ -68,5 +73,7 @@ int is_integer (char *number);
 int is_intneg (char *number);
 int is_intnonneg (char *number);
 int is_intpercent (char *number);
+char* human_readable(double size/*in bytes*/, char *buf);
+bool in_array(const std::string &value, const std::vector<std::string> &array);
 
 #endif /* _COMMON_H_ */

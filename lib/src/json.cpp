@@ -47,12 +47,28 @@ void Json::find(const std::string base, const std::string search, nlohmann::json
 }
 
 /**
+ * search an json object from type nlohmann::json
+ */
+void Json::find(const std::string base, const std::string search, bool &result) {
+
+  nlohmann::json j = string2json(_json);
+  nlohmann::json v = json_value(j, base);
+
+  try {
+    result = v[search];
+  } catch(...) {
+    result = -1;
+  }
+}
+
+/**
  * search an json object
  */
 nlohmann::json Json::find(const std::string base, const std::string search) {
 
   nlohmann::json j = string2json(_json);
   nlohmann::json v = json_value(j, base);
+
   nlohmann::json r;
   try {
     r = v[search];
@@ -82,8 +98,6 @@ nlohmann::json Json::json_value(nlohmann::json j, std::string s) {
 
     try {
       value = search[s]["value"];
-
-//       std::cout << value << std::endl;
 
       // get am iterator to the first element
       nlohmann::json::iterator it = value.begin();
