@@ -39,15 +39,6 @@ int crit_percent = 0;
 int warning = 0;
 int critical = 0;
 
-enum ContentFeederState {
-  STOPPED,
-  STARTING,
-  INITIALIZING,
-  RUNNING,
-  FAILED,
-  UNKNOWN = 99
-};
-
 
 /**
  *
