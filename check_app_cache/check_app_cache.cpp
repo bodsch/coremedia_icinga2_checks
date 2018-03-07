@@ -231,6 +231,9 @@ int validate_arguments(void) {
 
   Resolver resolver;
 
+  if(redis_server == NULL)
+    redis_server = std::getenv("REDIS_HOST");
+
   if(redis_server != NULL) {
 
     if(resolver.is_host(redis_server) == false) {
@@ -330,7 +333,7 @@ void print_help (void) {
   std::cout << "    Print version information" << std::endl;
 
   std::cout << " -R, --redis" << std::endl;
-  std::cout << "    the redis service who stored the measurements data." << std::endl;
+  std::cout << "    (optional) the redis service who stored the measurements data." << std::endl;
   std::cout << " -H, --hostname" << std::endl;
   std::cout << "    the host to be checked." << std::endl;
   std::cout << " -A, --application" << std::endl;
@@ -346,7 +349,7 @@ void print_help (void) {
 void print_usage (void) {
   std::cout << std::endl;
   std::cout << "Usage:" << std::endl;
-  std::cout << " " << progname << " -R <redis_server> -H <hostname> -C <cache type>"  << std::endl;
+  std::cout << " " << progname << " [-R <redis_server>] -H <hostname> -C <cache type>"  << std::endl;
   std::cout << std::endl;
 }
 
