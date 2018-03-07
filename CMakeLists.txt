@@ -97,5 +97,11 @@ add_executable(check_nodeexporter_load ${CHECK_NE_LOAD})
 target_link_libraries(check_nodeexporter_load corelib ${LIB_REDOX} ${LIB_EV})
 
 
+file(GLOB CHECK_NE_MEMORY check_nodeexporter_memory/*.cpp)
+add_executable(check_nodeexporter_memory ${CHECK_NE_MEMORY})
+target_link_libraries(check_nodeexporter_memory corelib ${LIB_REDOX} ${LIB_EV})
+
+
+
 
 
