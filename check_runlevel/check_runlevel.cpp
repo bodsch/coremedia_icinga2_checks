@@ -37,18 +37,13 @@ char *content_server = NULL;
  */
 int main(int argc, char **argv) {
 
-  int result = STATE_UNKNOWN;
-
   if( process_arguments(argc, argv) == ERROR ) {
-//     std::cout << "Could not parse arguments"  << std::endl;
     std::cout << std::endl;
     print_usage();
     return STATE_UNKNOWN;
   }
 
-  result = check( server_name, content_server );
-
-  return result;
+  return check( server_name, content_server );
 }
 
 /**

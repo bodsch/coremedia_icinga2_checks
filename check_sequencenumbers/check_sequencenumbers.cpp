@@ -45,8 +45,6 @@ int critical = 0;
  */
 int main(int argc, char **argv) {
 
-  int result = STATE_UNKNOWN;
-
   if( process_arguments(argc, argv) == ERROR ) {
     std::cout << std::endl;
     print_usage();
@@ -83,9 +81,7 @@ int main(int argc, char **argv) {
     return STATE_CRITICAL;
   }
 
-  result = check( rls_data, mls_data );
-
-  return result;
+  return check( rls_data, mls_data );
 }
 
 /**

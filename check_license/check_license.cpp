@@ -53,17 +53,13 @@ MTime time_difference( const std::time_t start_time, const std::time_t end_time 
  */
 int main(int argc, char **argv) {
 
-  int result = STATE_UNKNOWN;
-
   if( process_arguments(argc, argv) == ERROR ) {
     std::cout << std::endl;
     print_usage();
     return STATE_UNKNOWN;
   }
 
-  result = check( server_name, content_server );
-
-  return result;
+  return check( server_name, content_server );
 }
 
 /**

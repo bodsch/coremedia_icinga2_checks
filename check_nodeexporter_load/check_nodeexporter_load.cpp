@@ -42,18 +42,13 @@ int critical = 0;
  */
 int main(int argc, char **argv) {
 
-  int result = STATE_UNKNOWN;
-
   if( process_arguments(argc, argv) == ERROR ) {
     std::cout << std::endl;
     print_usage();
     return STATE_UNKNOWN;
   }
 
-  result = check( server_name );
-
-
-  return result;
+  return check( server_name );
 }
 
 /**
