@@ -86,3 +86,16 @@ file(GLOB CHECK_LICENSE check_license/*.cpp)
 add_executable(check_license ${CHECK_LICENSE})
 target_link_libraries(check_license corelib ${LIB_REDOX} ${LIB_EV})
 
+
+file(GLOB CHECK_SEQUENCENUMBERS check_sequencenumbers/*.cpp)
+add_executable(check_sequencenumbers ${CHECK_SEQUENCENUMBERS})
+target_link_libraries(check_sequencenumbers corelib ${LIB_REDOX} ${LIB_EV})
+
+
+file(GLOB CHECK_NE_LOAD check_nodeexporter_load/*.cpp)
+add_executable(check_nodeexporter_load ${CHECK_NE_LOAD})
+target_link_libraries(check_nodeexporter_load corelib ${LIB_REDOX} ${LIB_EV})
+
+
+
+
