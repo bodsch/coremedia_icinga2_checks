@@ -72,7 +72,7 @@ void Json::find(const std::string base, const std::string search, nlohmann::json
 }
 
 /**
- * search an json object from type nlohmann::json
+ * search an json object from type bool
  */
 void Json::find(const std::string base, const std::string search, bool &result) {
 
@@ -110,35 +110,40 @@ nlohmann::json Json::find(const std::string base, const std::string search) {
 nlohmann::json Json::json_value(nlohmann::json j, std::string s) {
 
   int size = j.size();
-
   nlohmann::json search;
   nlohmann::json value;
 
-  for( int i = 0; i <= size; ++i) {
-    search = j.at(i);
-    if ( search.find(s) != search.end()) { break; }
-  }
+  if( j.is_object() ) {
+    auto it_find_value  = j.find(s);
 
-  if( search.size() == 1 ) {
+    if(it_find_value != j.end())
+      value = j[s];
+  } else {
+    for( int i = 0; i <= size; ++i) {
+      search = j.at(i);
+      if ( search.find(s) != search.end()) { break; }
+    }
 
-    try {
-      value = search[s]["value"];
-      // get am iterator to the first element
-      nlohmann::json::iterator it = value.begin();
+    if( search.size() == 1 ) {
 
-      if(it.key().find("com.coremedia") != std::string::npos) {
-        value = value[it.key()];
+      try {
+        value = search[s]["value"];
+        // get am iterator to the first element
+        nlohmann::json::iterator it = value.begin();
+
+        if(it.key().find("com.coremedia") != std::string::npos) {
+          value = value[it.key()];
+        }
+      } catch (nlohmann::json::parse_error& e) {
+        // output exception information
+        std::cout << "message: " << e.what() << '\n'
+                  << "exception id: " << e.id << '\n'
+                  << "byte position of error: " << e.byte << std::endl;
+      } catch(...) {
+        std::cout << "ERROR - can\'t parse json."  << std::endl;
       }
-    } catch (nlohmann::json::parse_error& e) {
-      // output exception information
-      std::cout << "message: " << e.what() << '\n'
-                << "exception id: " << e.id << '\n'
-                << "byte position of error: " << e.byte << std::endl;
-    } catch(...) {
-      std::cout << "ERROR - can\'t parse json."  << std::endl;
     }
   }
-
   return value;
 }
 

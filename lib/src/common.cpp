@@ -116,3 +116,51 @@ char* human_readable(double size/*in bytes*/, char *buf) {
 bool in_array(const std::string &value, const std::vector<std::string> &array) {
   return std::find(array.begin(), array.end(), value) != array.end();
 }
+
+
+int service_state( std::string state_string, int state_numeric ) {
+
+  int state = STATE_UNKNOWN;
+
+  if( state_numeric != -1 ) {
+
+    if( state_numeric == STOPPED ) {
+      std::cout << "Service are in <b>stopped</b> state." << std::endl;
+      state = STATE_WARNING;
+    } else
+    if( state_numeric == STARTING ) {
+      std::cout << "Service are in <b>starting</b> state." << std::endl;
+      state = STATE_UNKNOWN;
+    } else
+    if( state_numeric == INITIALIZING ) {
+      std::cout << "Service are in <b>initializing</b> state." << std::endl;
+      state = STATE_UNKNOWN;
+    } else
+    if( state_numeric == RUNNING) {
+      state = STATE_OK;
+    }
+    else {
+      std::cout << "Service are in <b>failed</b> state." << std::endl;
+      state  = STATE_CRITICAL;
+    }
+
+  } else {
+
+    std::transform(state_string.begin(), state_string.end(), state_string.begin(), ::tolower);
+
+    if( state_string == "initializing") {
+      std::cout << "Service are in <b>initializing</b> state." << std::endl;
+      state  = STATE_WARNING;
+    } else
+    if( state_string == "running") {
+      state = STATE_OK;
+    }
+    else {
+      std::cout << "Service are in <b>unknown</b> state." << std::endl;
+      state = STATE_CRITICAL;
+    }
+  }
+
+  return state;
+}
+

@@ -60,6 +60,17 @@ enum {
   STATE_DEPENDENT
 };
 
+enum FeederState {
+  STOPPED,
+  STARTING,
+  INITIALIZING,
+  RUNNING,
+  FAILED,
+  UNKNOWN = 99
+};
+
+
+
 enum {
   DEFAULT_SOCKET_TIMEOUT = 10,   /* timeout after 10 seconds */
   MAX_INPUT_BUFFER = 8192,       /* max size of most buffers we use */
@@ -75,5 +86,6 @@ int is_intnonneg (char *number);
 int is_intpercent (char *number);
 char* human_readable(double size/*in bytes*/, char *buf);
 bool in_array(const std::string &value, const std::vector<std::string> &array);
+int service_state( std::string feeder_state , int feeder_state_numeric = -1 );
 
 #endif /* _COMMON_H_ */

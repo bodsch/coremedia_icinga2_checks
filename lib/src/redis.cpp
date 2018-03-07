@@ -3,6 +3,30 @@
 
 std::string Redis::cache_key(const std::string hostname, const std::string service) {
 
+    std::vector<std::string> app = {
+      "content-management-server",
+      "master-live-server",
+      "replication-live-server",
+      "workflow-server",
+      "content-feeder",
+      "user-changes",
+      "elastic-worker",
+      "caefeeder-preview",
+      "caefeeder-live",
+      "cae-preview",
+      "studio",
+      "sitemanager",
+      "cae-live",
+      "node-exporter"
+    };
+
+    if( ! in_array( service, app )) {
+      std::cerr << "'" << service << "' is no valid service!" << std::endl;
+      return "";
+    }
+
+
+
   /**
    * calculate the cache key for the data in our redis */
   std::map<std::string,std::string> d;
@@ -40,7 +64,7 @@ bool Redis::get(const std::string key, std::string &result) {
   redox::Redox rdx( std::cerr, redox::log::Off);
 
   if(!rdx.connect(_server, _port)) {
-    std::cout << "ERROR - Could not connect to Redis: Connection refused." << std::endl;
+//     std::cout << "ERROR - Could not connect to Redis: Connection refused." << std::endl;
     return false;
   }
 
@@ -50,7 +74,7 @@ bool Redis::get(const std::string key, std::string &result) {
   try {
     result = rdx.get(key);
   } catch(...) {
-    std::cout << "WARNING - no data in our data store found."  << std::endl;
+//     std::cout << "WARNING - no data in our data store found."  << std::endl;
     return false;
   }
 

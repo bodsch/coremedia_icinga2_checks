@@ -11,6 +11,7 @@
 
 // #include <common.h>
 #include "md5.h"
+#include "common.h"
 #include <redox.hpp>
 
 class Redis {
