@@ -72,6 +72,8 @@ int check( const std::string server_name ) {
     return STATE_WARNING;
   }
 
+  std::string status = "";
+
   std::string mem_available = "0";
   std::string mem_free      = "0";
   std::string mem_total     = "0";
@@ -83,6 +85,16 @@ int check( const std::string server_name ) {
   std::string swap_free   = "0";
   float swap_used         = 0;
   float swap_used_percent = 0;
+
+  std::string mem_total_human_readable = "";
+  std::string mem_used_human_readable = "";
+  std::string swap_total_human_readable = "";
+  std::string swap_used_human_readable = "";
+
+  std::ostringstream stringStream;
+  std::string output_status;
+
+  char buf[10];
 
   try {
 
@@ -123,33 +135,88 @@ int check( const std::string server_name ) {
 
 // -----------------------------
 
-    mem_used          = std::stof(mem_total.c_str()) - std::stof(mem_available.c_str());
-    mem_used_percent  = ( 100 * mem_used / std::stof(mem_total.c_str()) );
-    mem_used_percent  = roundf(mem_used_percent *100) / 100;
+  mem_used          = std::stof(mem_total.c_str()) - std::stof(mem_available.c_str());
+  mem_used_percent  = ( 100 * mem_used / std::stof(mem_total.c_str()) );
+  mem_used_percent  = roundf(mem_used_percent *100) / 100;
 
-    std::cout << "mem_total " << mem_total << std::endl;
-    std::cout << "mem_free  " << mem_free << std::endl;
-    std::cout << "mem_avail " << mem_available << std::endl;
+  std::cout << "mem_total " << mem_total << std::endl;
+  std::cout << "mem_free  " << mem_free << std::endl;
+  std::cout << "mem_avail " << mem_available << std::endl;
 
-    std::cout << "mem_used " << mem_used << std::endl;
-    std::cout << "mem_used % " << mem_used_percent << std::endl;
+  std::cout << "mem_used " << mem_used << std::endl;
+  std::cout << "mem_used % " << mem_used_percent << std::endl;
 
-    if( std::stol(swap_total.c_str()) != 0 ) {
+  if( std::stol(swap_total.c_str()) != 0 ) {
 
-      swap_used          = std::stof(swap_total.c_str()) - std::stof(swap_free.c_str());
-      swap_used_percent  = 100 * swap_used / std::stof(swap_total.c_str());
-      swap_used_percent  = roundf(swap_used_percent *100) / 100;
+    swap_used          = std::stof(swap_total.c_str()) - std::stof(swap_free.c_str());
+    swap_used_percent  = 100 * swap_used / std::stof(swap_total.c_str());
+    swap_used_percent  = roundf(swap_used_percent *100) / 100;
 
-      std::cout << "swap_total " << std::stof(swap_total.c_str()) << std::endl;
-      std::cout << "swap_free  " << std::stof(swap_free.c_str()) << std::endl;
-
-      std::cout << "swap_used  "  << swap_used << std::endl;
-      std::cout << "swap_used % " << swap_used_percent << std::endl;
+    if( swap_used_percent == warning || swap_used_percent <= warning ) {
+      status    = "OK";
+      state = STATE_OK;
+    } else
+    if( swap_used_percent >= warning && swap_used_percent <= critical ) {
+      status    = "WARNING";
+      state = STATE_WARNING;
+    } else {
+      status    = "CRITICAL";
+      state = STATE_CRITICAL;
     }
 
+    std::cout << "swap_total " << std::stof(swap_total.c_str()) << std::endl;
+    std::cout << "swap_free  " << std::stof(swap_free.c_str()) << std::endl;
 
+    std::cout << "swap_used  "  << swap_used << std::endl;
+    std::cout << "swap_used % " << swap_used_percent << std::endl;
 
+    if( state != STATE_OK ) {
+      stringStream << "(" << status << ")";
+      std::string output_status = stringStream.str();
+    }
 
+    swap_total_human_readable = human_readable(std::stol(swap_total.c_str()), buf);
+    swap_used_human_readable = human_readable(swap_used, buf);
+
+    std::cout
+      << "swap  - "
+      << "size: " << swap_total_human_readable << ", "
+      << "used: " << swap_used_human_readable << ", "
+      << "used percent: " << swap_used_percent << "%"
+      << output_status
+      << "<br>";
+  }
+
+  if( mem_used_percent == warning || mem_used_percent <= warning ) {
+    status    = "OK";
+    state = STATE_OK;
+  } else
+  if( mem_used_percent >= warning && mem_used_percent <= critical ) {
+    status    = "WARNING";
+    state = STATE_WARNING;
+  } else {
+    status    = "CRITICAL";
+    state = STATE_CRITICAL;
+  }
+
+  if( state != STATE_OK ) {
+    stringStream.clear();
+    stringStream << "(" << status << ")";
+    std::string output_status = stringStream.str();
+
+//     std::string output_status = "(" << status << ")";
+  }
+
+  mem_total_human_readable = human_readable(std::stol(mem_total.c_str()), buf);
+  mem_used_human_readable = human_readable(mem_used, buf);
+
+  std::cout
+    << "memory  - "
+    << "size: " << mem_total_human_readable << ", "
+    << "used: " << mem_used_human_readable << ", "
+    << "used percent: " << mem_used_percent << "%"
+    << output_status
+    << std::endl;
 
   return state;
 }
