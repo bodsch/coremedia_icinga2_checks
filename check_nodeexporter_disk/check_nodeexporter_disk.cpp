@@ -17,7 +17,7 @@
 #include <redis.h>
 #include <json.h>
 
-const char *progname = "check_nodeexporter_disk";
+const char *progname = "check_nodeexporter_filesystem";
 const char *version = "0.0.1";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
@@ -31,11 +31,12 @@ void print_usage (void);
 
 char *redis_server = NULL;
 char *server_name = NULL;
+char *partition_name = NULL;
 
 int warn_percent = 0;
 int crit_percent = 0;
-int warning = 0;
-int critical = 0;
+float warning = 0;
+float critical = 0;
 
 /**
  *
@@ -74,92 +75,135 @@ int check( const std::string server_name ) {
 
   std::string status = "";
 
-  std::string mem_available = "0";
-  std::string mem_free      = "0";
-  std::string mem_total     = "0";
-  float mem_used         = 0;
-  float mem_used_percent = 0;
-
-  std::string mem_total_human_readable = "";
-  std::string mem_used_human_readable = "";
-
   char buf[10];
 
   try {
 
     Json json(redis_data);
 
-    nlohmann::json disk = "";
-    json.find("disk", disk);
-
-    if( disk.is_null() )    { std::cout << "is null" << std::endl; }
-    if( disk.is_boolean() ) { std::cout << "is boolean" << std::endl; }
-    if( disk.is_number() )  { std::cout << "is number" << std::endl; }
-    if( disk.is_object() )  { std::cout << "is object" << std::endl; }
-    if( disk.is_array() )   { std::cout << "is array" << std::endl; }
-    if( disk.is_string() )  { std::cout << "is string" << std::endl; }
-
-    if( !disk.is_object() ) {
+    nlohmann::json filesystem = "";
+    json.find("filesystem", filesystem);
+/*
+    if( filesystem.is_null() )    { std::cout << "is null" << std::endl; }
+    if( filesystem.is_boolean() ) { std::cout << "is boolean" << std::endl; }
+    if( filesystem.is_number() )  { std::cout << "is number" << std::endl; }
+    if( filesystem.is_object() )  { std::cout << "is object" << std::endl; }
+    if( filesystem.is_array() )   { std::cout << "is array" << std::endl; }
+    if( filesystem.is_string() )  { std::cout << "is string" << std::endl; }
+*/
+    if( !filesystem.is_object() ) {
       std::cout
-        << "<b>no disk measurement points available.</b>"
+        << "<b>no filesystem measurement points available.</b>"
         << std::endl;
       return STATE_WARNING;
     }
 
-    std::cout << disk.dump(2) << std::endl;
-/*
-    json.find("disk", "MemTotal", mem_total);
-    json.find("disk", "MemFree", mem_free);
-    json.find("disk", "MemAvailable", mem_available);
-*/
+    if( filesystem.size() >= 1 ) {
 
+      std::string mountpoint = "";
+      std::string _avail = "0";
+      std::string _size = "0";
+      float avail = 0;
+      float size = 0;
+      float used = 0;
+      int used_percent = 0;
+      std::string size_human_readable = "";
+      std::string used_human_readable = "";
+      std::string avail_human_readable = "";
+
+      std::string key = "";
+      nlohmann::json value = "";
+
+      for (auto it = filesystem.begin(); it != filesystem.end(); ++it) {
+
+        key = it.key();
+        value = it.value();
+/*
+        if( value.is_null() )    { std::cout << "is null" << std::endl; }
+        if( value.is_boolean() ) { std::cout << "is boolean" << std::endl; }
+        if( value.is_number() )  { std::cout << "is number" << std::endl; }
+        if( value.is_object() )  { std::cout << "is object" << std::endl; }
+        if( value.is_array() )   { std::cout << "is array" << std::endl; }
+        if( value.is_string() )  { std::cout << "is string" << std::endl; }
+*/
+        if( value.is_object() ) {
+
+          mountpoint = filesystem[key]["mountpoint"];
+          if(mountpoint == partition_name) {
+            break;
+          } else {
+            key = "";
+          }
+        }
+      }
+
+      if( key.empty() ) {
+
+        std::cout
+          << "partition '" << partition_name << "' not found."
+          << std::endl;
+
+        return STATE_UNKNOWN;
+      }
+
+      auto it_find_size  = value.find("size");
+      auto it_find_avail = value.find("avail");
+
+      if(it_find_size != value.end())
+        _size = value["size"];
+
+      if(it_find_avail != value.end())
+        _avail = value["avail"];
+
+      size  = std::stof(_size.c_str());
+      avail = std::stof(_avail.c_str());
+
+      if( size > 0 ) {
+
+        used  = size - avail;
+        used_percent  = 100 * used / size;
+
+        used_percent  = roundf(used_percent *100) / 100;
+        used_percent  = ((int)(used_percent * 100 + .5) / 100.0);
+
+        size_human_readable = human_readable(size,buf);
+        used_human_readable = human_readable(used,buf);
+        avail_human_readable = human_readable(avail,buf);
+
+        std::cout << "used " << used_percent << std::endl;
+        std::cout << "warn_percent " << warn_percent << std::endl;
+        std::cout << "crit_percent " << crit_percent << std::endl;
+
+        if( used_percent == warn_percent || used_percent <= warn_percent ) {
+          state = STATE_OK;
+        } else
+        if( used_percent >= warn_percent && used_percent <= crit_percent ) {
+          state = STATE_WARNING;
+        } else {
+          state = STATE_CRITICAL;
+        }
+
+        // transform float to string *without* precision and no decimal digits
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(0) << used;
+
+        std::cout
+          << "partition '" << partition_name << "' - "
+          << "size: " << size_human_readable << ", "
+          << "used: " << used_human_readable << ", "
+          << "used percent: " << used_percent << "% |"
+          << " size=" << _size
+          << " used=" <<  ss.str()
+          << " percent=" << used_percent
+          << std::endl;
+      }
+    }
   } catch(...) {
 
     std::cout << "WARNING - parsing of json is corrupt."  << std::endl;
     return STATE_WARNING;
   }
 
-// -----------------------------
-/*
-  mem_used          = std::stof(mem_total.c_str()) - std::stof(mem_available.c_str());
-  mem_used_percent  = ( 100 * mem_used / std::stof(mem_total.c_str()) );
-  mem_used_percent  = roundf(mem_used_percent *100) / 100;
-
-  std::cout << "mem_total " << mem_total << std::endl;
-  std::cout << "mem_free  " << mem_free << std::endl;
-  std::cout << "mem_avail " << mem_available << std::endl;
-
-  std::cout << "mem_used " << mem_used << std::endl;
-  std::cout << "mem_used % " << mem_used_percent << std::endl;
-*/
-/*
-  if( mem_used_percent == warning || mem_used_percent <= warning ) {
-    status    = "OK";
-    state = STATE_OK;
-  } else
-  if( mem_used_percent >= warning && mem_used_percent <= critical ) {
-    status    = "WARNING"
-    state = STATE_WARNING;
-  } else {
-    status    = "CRITICAL"
-    state = STATE_CRITICAL;
-  }
-
-  if( state != STATE_OK ) {
-    std::string output_status = "(" << status << ")";
-  }
-
-  mem_total_human_readable = human_readable(mem_total, buf);
-  mem_used_human_readable = human_readable(mem_used, buf);
-
-  std::cout
-    << "disk  - "
-    << "size: " << mem_total_human_readable << ", "
-    << "used: " << mem_used_human_readable << ", "
-    << "used percent: " << mem_used_percent << "%"
-    << output_status
-    << std::endl;
-*/
   return state;
 }
 
@@ -170,12 +214,13 @@ int check( const std::string server_name ) {
 int process_arguments (int argc, char **argv) {
 
   int opt = 0;
-  const char* const short_opts = "hVR:H:w:c:";
+  const char* const short_opts = "hVR:H:P:w:c:";
   const option long_opts[] = {
     {"help"       , no_argument      , nullptr, 'h'},
     {"version"    , no_argument      , nullptr, 'V'},
     {"redis"      , required_argument, nullptr, 'R'},
     {"hostname"   , required_argument, nullptr, 'H'},
+    {"partition"  , required_argument, nullptr, 'P'},
     {"warning"    , required_argument, nullptr, 'w'},
     {"critical"   , required_argument, nullptr, 'c'},
     {nullptr      , 0, nullptr, 0}
@@ -200,21 +245,44 @@ int process_arguments (int argc, char **argv) {
       case 'H':
         server_name = optarg;
         break;
+      case 'P':
+        partition_name = optarg;
+        break;
       case 'w':                  /* warning size threshold */
-        if(is_intnonneg(optarg)) {
-          warning = atoi(optarg);
+        if (is_intnonneg (optarg)) {
+          warning = (float) atoi (optarg);
           break;
-        } else {
-          std::cout << "Warning threshold must be integer!" << std::endl;
-          print_usage();
+        }
+        else if (strstr (optarg, ",") &&
+                 strstr (optarg, "%") &&
+                 sscanf (optarg, "%f,%d%%", &warning, &warn_percent) == 2) {
+          warning = floorf(warning);
+          break;
+        }
+        else if (strstr (optarg, "%") &&
+                 sscanf (optarg, "%d%%", &warn_percent) == 1) {
+          break;
+        }
+        else {
+          std::cout << "Warning threshold must be integer or percentage!" << std::endl;
         }
       case 'c':                  /* critical size threshold */
-        if(is_intnonneg(optarg)) {
-          critical = atoi(optarg);
+        if (is_intnonneg (optarg)) {
+          critical = (float) atoi (optarg);
           break;
-        } else {
-          std::cout <<  "Critical threshold must be integer!" << std::endl;
-          print_usage();
+        }
+        else if (strstr (optarg, ",") &&
+                 strstr (optarg, "%") &&
+                 sscanf (optarg, "%f,%d%%", &critical, &crit_percent) == 2) {
+          critical = floorf(critical);
+          break;
+        }
+        else if (strstr (optarg, "%") &&
+                 sscanf (optarg, "%d%%", &crit_percent) == 1) {
+          break;
+        }
+        else {
+          std::cout << "Critical threshold must be integer or percentage!" << std::endl;
         }
 
       default:
@@ -258,6 +326,11 @@ int validate_arguments(void) {
     return ERROR;
   }
 
+  if(partition_name == NULL) {
+    std::cerr << "missing 'partition' argument." << std::endl;
+    return ERROR;
+  }
+
   if( warning > critical ) {
     std::cout << "critical should be more than warning" << std::endl;
   }
@@ -285,6 +358,8 @@ void print_help (void) {
   std::cout << "    (optional) the redis service who stored the measurements data." << std::endl;
   std::cout << " -H, --hostname" << std::endl;
   std::cout << "    the host to be checked." << std::endl;
+  std::cout << " -P, --partition" << std::endl;
+  std::cout << "    the partition to be checked." << std::endl;
 }
 
 /**
@@ -293,6 +368,6 @@ void print_help (void) {
 void print_usage (void) {
   std::cout << std::endl;
   std::cout << "Usage:" << std::endl;
-  std::cout << " " << progname << " [-R <redis_server>] -H <hostname>"  << std::endl;
+  std::cout << " " << progname << " [-R <redis_server>] -H <hostname> -P <partition name>"  << std::endl;
   std::cout << std::endl;
 }
