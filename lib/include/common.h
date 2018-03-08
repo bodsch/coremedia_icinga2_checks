@@ -11,6 +11,7 @@
 #include <iostream>     // std::cout
 #include <algorithm>    // std::find
 #include <vector>       // std::vector
+#include <math.h>       // pow() and round()
 
 #define COPYRIGHT "  Copyright (c) %s Bodo Schulz <%s>\n\n"
 
@@ -84,6 +85,7 @@ int is_integer (char *number);
 int is_intneg (char *number);
 int is_intnonneg (char *number);
 int is_intpercent (char *number);
+double decimals(const double& x, const int& numDecimals);
 char* human_readable(double size/*in bytes*/, char *buf);
 bool in_array(const std::string &value, const std::vector<std::string> &array);
 int service_state( std::string feeder_state , int feeder_state_numeric = -1 );

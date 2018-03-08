@@ -97,16 +97,25 @@ int is_intpercent (char *number) {
 		return FALSE;
 }
 
+/* Function to control # of decimal places to be output for x */
+double decimals(const double& x, const int& numDecimals) {
+    int y=x;
+    double z=x-y;
+    double m=pow(10,numDecimals);
+    double q=z*m;
+    double r=round(q);
+
+    return static_cast<double>(y)+(1.0/m)*r;
+}
 
 char* human_readable(double size/*in bytes*/, char *buf) {
-
   int i = 0;
   const char* units[] = {"B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"};
   while (size > 1024) {
     size /= 1024;
     i++;
   }
-  sprintf(buf, "%.*f %s", i, size, units[i]);
+  sprintf(buf, "%.2f %s", size, units[i]);
   return buf;
 }
 

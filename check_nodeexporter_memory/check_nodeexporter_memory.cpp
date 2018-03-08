@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_nodeexporter_memory";
-const char *version = "0.0.1";
+const char *version = "1.0.0";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -34,8 +34,8 @@ char *server_name = NULL;
 
 int warn_percent = 0;
 int crit_percent = 0;
-int warning = 0;
-int critical = 0;
+float warning = 0;
+float critical = 0;
 
 /**
  *
@@ -103,21 +103,12 @@ int check( const std::string server_name ) {
     nlohmann::json memory = "";
     json.find("memory", memory);
 
-    if( memory.is_null() )    { std::cout << "is null" << std::endl; }
-    if( memory.is_boolean() ) { std::cout << "is boolean" << std::endl; }
-    if( memory.is_number() )  { std::cout << "is number" << std::endl; }
-    if( memory.is_object() )  { std::cout << "is object" << std::endl; }
-    if( memory.is_array() )   { std::cout << "is array" << std::endl; }
-    if( memory.is_string() )  { std::cout << "is string" << std::endl; }
-
     if( !memory.is_object() ) {
       std::cout
         << "<b>no memory measurement points available.</b>"
         << std::endl;
       return STATE_WARNING;
     }
-
-    std::cout << memory.dump(2) << std::endl;
 
     json.find("memory", "MemTotal", mem_total);
     json.find("memory", "MemFree", mem_free);
@@ -133,30 +124,26 @@ int check( const std::string server_name ) {
     return STATE_WARNING;
   }
 
-// -----------------------------
 
   mem_used          = std::stof(mem_total.c_str()) - std::stof(mem_available.c_str());
   mem_used_percent  = ( 100 * mem_used / std::stof(mem_total.c_str()) );
   mem_used_percent  = roundf(mem_used_percent *100) / 100;
 
-  std::cout << "mem_total " << mem_total << std::endl;
-  std::cout << "mem_free  " << mem_free << std::endl;
-  std::cout << "mem_avail " << mem_available << std::endl;
-
-  std::cout << "mem_used " << mem_used << std::endl;
-  std::cout << "mem_used % " << mem_used_percent << std::endl;
+  mem_used_percent = ((int)(mem_used_percent * 100 + .5) / 100.0);
 
   if( std::stol(swap_total.c_str()) != 0 ) {
 
     swap_used          = std::stof(swap_total.c_str()) - std::stof(swap_free.c_str());
+    swap_used          = ((int)(swap_used * 100 + .5) / 100.0);
     swap_used_percent  = 100 * swap_used / std::stof(swap_total.c_str());
     swap_used_percent  = roundf(swap_used_percent *100) / 100;
+    swap_used_percent  = ((int)(swap_used_percent * 100 + .5) / 100.0);
 
-    if( swap_used_percent == warning || swap_used_percent <= warning ) {
+    if( swap_used_percent == warn_percent || swap_used_percent <= warn_percent ) {
       status    = "OK";
       state = STATE_OK;
     } else
-    if( swap_used_percent >= warning && swap_used_percent <= critical ) {
+    if( swap_used_percent >= warn_percent && swap_used_percent <= crit_percent ) {
       status    = "WARNING";
       state = STATE_WARNING;
     } else {
@@ -164,34 +151,28 @@ int check( const std::string server_name ) {
       state = STATE_CRITICAL;
     }
 
-    std::cout << "swap_total " << std::stof(swap_total.c_str()) << std::endl;
-    std::cout << "swap_free  " << std::stof(swap_free.c_str()) << std::endl;
-
-    std::cout << "swap_used  "  << swap_used << std::endl;
-    std::cout << "swap_used % " << swap_used_percent << std::endl;
-
     if( state != STATE_OK ) {
       stringStream << "(" << status << ")";
-      std::string output_status = stringStream.str();
+      output_status = stringStream.str();
     }
 
     swap_total_human_readable = human_readable(std::stol(swap_total.c_str()), buf);
     swap_used_human_readable = human_readable(swap_used, buf);
 
     std::cout
-      << "swap  - "
+      << "swap    - "
       << "size: " << swap_total_human_readable << ", "
       << "used: " << swap_used_human_readable << ", "
-      << "used percent: " << swap_used_percent << "%"
+      << "used percent: " << swap_used_percent << "% "
       << output_status
       << "<br>";
   }
 
-  if( mem_used_percent == warning || mem_used_percent <= warning ) {
+  if( mem_used_percent == warn_percent || mem_used_percent <= warn_percent ) {
     status    = "OK";
     state = STATE_OK;
   } else
-  if( mem_used_percent >= warning && mem_used_percent <= critical ) {
+  if( mem_used_percent >= warn_percent && mem_used_percent <= crit_percent ) {
     status    = "WARNING";
     state = STATE_WARNING;
   } else {
@@ -202,9 +183,7 @@ int check( const std::string server_name ) {
   if( state != STATE_OK ) {
     stringStream.clear();
     stringStream << "(" << status << ")";
-    std::string output_status = stringStream.str();
-
-//     std::string output_status = "(" << status << ")";
+    output_status = stringStream.str();
   }
 
   mem_total_human_readable = human_readable(std::stol(mem_total.c_str()), buf);
@@ -214,7 +193,7 @@ int check( const std::string server_name ) {
     << "memory  - "
     << "size: " << mem_total_human_readable << ", "
     << "used: " << mem_used_human_readable << ", "
-    << "used percent: " << mem_used_percent << "%"
+    << "used percent: " << mem_used_percent << "% "
     << output_status
     << std::endl;
 
@@ -259,20 +238,40 @@ int process_arguments (int argc, char **argv) {
         server_name = optarg;
         break;
       case 'w':                  /* warning size threshold */
-        if(is_intnonneg(optarg)) {
-          warning = atoi(optarg);
+        if (is_intnonneg (optarg)) {
+          warning = (float) atoi (optarg);
           break;
-        } else {
-          std::cout << "Warning threshold must be integer!" << std::endl;
-          print_usage();
+        }
+        else if (strstr (optarg, ",") &&
+                 strstr (optarg, "%") &&
+                 sscanf (optarg, "%f,%d%%", &warning, &warn_percent) == 2) {
+          warning = floorf(warning);
+          break;
+        }
+        else if (strstr (optarg, "%") &&
+                 sscanf (optarg, "%d%%", &warn_percent) == 1) {
+          break;
+        }
+        else {
+          std::cout << "Warning threshold must be integer or percentage!" << std::endl;
         }
       case 'c':                  /* critical size threshold */
-        if(is_intnonneg(optarg)) {
-          critical = atoi(optarg);
+        if (is_intnonneg (optarg)) {
+          critical = (float) atoi (optarg);
           break;
-        } else {
-          std::cout <<  "Critical threshold must be integer!" << std::endl;
-          print_usage();
+        }
+        else if (strstr (optarg, ",") &&
+                 strstr (optarg, "%") &&
+                 sscanf (optarg, "%f,%d%%", &critical, &crit_percent) == 2) {
+          critical = floorf(critical);
+          break;
+        }
+        else if (strstr (optarg, "%") &&
+                 sscanf (optarg, "%d%%", &crit_percent) == 1) {
+          break;
+        }
+        else {
+          std::cout << "Critical threshold must be integer or percentage!" << std::endl;
         }
 
       default:
