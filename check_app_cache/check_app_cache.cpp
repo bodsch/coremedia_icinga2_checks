@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_app_cache";
-const char *version = "1.0.0";
+const char *version = "1.0.1";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -33,8 +33,8 @@ char *server_name = NULL;
 char *application = NULL;
 char *cache_type = NULL;
 
-int warn_percent = 0;
-int crit_percent = 0;
+int warn_percent = 90;
+int crit_percent = 95;
 float warn_size_bytes = 0;
 float crit_size_bytes = 0;
 
@@ -77,8 +77,9 @@ int check( const std::string server_name, const std::string application, const s
     std::string status = "";
 
     Json json(redis_data);
-    int cache_max  = 0;
-    int cache_used = 0;
+    long cache_max  = 0;
+    long cache_used = 0;
+    float percent;
 
     if(type == "uapi-cache") {
       json.find("CapConnection", "HeapCacheSize", cache_max);
@@ -89,8 +90,6 @@ int check( const std::string server_name, const std::string application, const s
       json.find("CapConnection", "BlobCacheLevel", cache_used);
       cache_type = "BLOB";
     }
-
-    float percent;
 
     percent = 100.0 * (float)cache_used / (float)cache_max;
     percent = roundf(percent * 100) / 100;
@@ -114,6 +113,7 @@ int check( const std::string server_name, const std::string application, const s
     }
 
     std::cout
+      << status << " - "
       << percent << "% " << cache_type << " Cache used"
       << "<br>"
       << "Max: " << cache_max_human_readable
