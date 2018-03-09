@@ -17,8 +17,8 @@
 #include <redis.h>
 #include <json.h>
 
-const char *progname = "check_nodeexporter_filesystem";
-const char *version = "0.0.1";
+const char *progname = "check_nodeexporter_disk";
+const char *version = "1.0.1";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -75,7 +75,7 @@ int check( const std::string server_name ) {
 
   std::string status = "";
 
-  char buf[10];
+  char buf[15];
 
   try {
 
@@ -170,16 +170,15 @@ int check( const std::string server_name ) {
         used_human_readable = human_readable(used,buf);
         avail_human_readable = human_readable(avail,buf);
 
-        std::cout << "used " << used_percent << std::endl;
-        std::cout << "warn_percent " << warn_percent << std::endl;
-        std::cout << "crit_percent " << crit_percent << std::endl;
-
         if( used_percent == warn_percent || used_percent <= warn_percent ) {
+          status    = "OK";
           state = STATE_OK;
         } else
         if( used_percent >= warn_percent && used_percent <= crit_percent ) {
+          status    = "WARNING";
           state = STATE_WARNING;
         } else {
+          status    = "CRITICAL";
           state = STATE_CRITICAL;
         }
 
@@ -188,6 +187,7 @@ int check( const std::string server_name ) {
         ss << std::fixed << std::setprecision(0) << used;
 
         std::cout
+          << status << " - "
           << "partition '" << partition_name << "' - "
           << "size: " << size_human_readable << ", "
           << "used: " << used_human_readable << ", "
