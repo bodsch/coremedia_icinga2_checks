@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_tomcat_memory";
-const char *version = "1.0.0";
+const char *version = "1.0.1";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -83,9 +83,13 @@ int check( const std::string server_name, const std::string application, const s
     if(type == "heap-mem") {
       json.find("Memory", "HeapMemoryUsage", memory);
       memory_type = "Heap";
+      warn_percent = 80;
+      crit_percent = 90;
     } else {
       json.find("Memory", "NonHeapMemoryUsage", memory);
       memory_type = "Perm";
+      warn_percent = 98;
+      crit_percent = 99;
     }
 
 //     std::cout << memory.dump(2) << std::endl;
@@ -121,6 +125,7 @@ int check( const std::string server_name, const std::string application, const s
     if(type == "heap-mem") {
 
       std::cout
+        << status << " - "
         << percent << "% " << memory_type << " Memory used"
         << "<br>"
         << "Max: " << memory_max_human_readable
@@ -136,6 +141,7 @@ int check( const std::string server_name, const std::string application, const s
     } else {
 
       std::cout
+        << status << " - "
         << percent << "% " << memory_type << " Memory used"
         << "<br>"
         << "Commited: " << memory_committed_human_readable
