@@ -12,6 +12,7 @@
 #include <algorithm>    // std::find
 #include <vector>       // std::vector
 #include <math.h>       // pow() and round()
+#include <ctime>        // std::time_t
 
 #define COPYRIGHT "  Copyright (c) %s Bodo Schulz <%s>\n\n"
 
@@ -70,13 +71,23 @@ enum FeederState {
   UNKNOWN = 99
 };
 
-
-
 enum {
   DEFAULT_SOCKET_TIMEOUT = 10,   /* timeout after 10 seconds */
   MAX_INPUT_BUFFER = 8192,       /* max size of most buffers we use */
   MAX_HOST_ADDRESS_LENGTH = 256   /* max size of a host address */
 };
+
+struct TimeDifference {
+  int years;
+  int months;
+  int weeks;
+  int days;
+  int hours;
+  int minutes;
+  int seconds;
+};
+
+
 
 void print_revision(const char *, const char *);
 void usage(const char *msg);
@@ -89,5 +100,6 @@ double decimals(const double& x, const int& numDecimals);
 char* human_readable(double size/*in bytes*/, char *buf);
 bool in_array(const std::string &value, const std::vector<std::string> &array);
 int service_state( std::string feeder_state , int feeder_state_numeric = -1 );
+TimeDifference time_difference( const std::time_t start_time, const std::time_t end_time );
 
 #endif /* _COMMON_H_ */

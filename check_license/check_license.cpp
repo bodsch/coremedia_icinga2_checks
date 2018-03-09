@@ -6,7 +6,7 @@
 #include <cctype>
 #include <vector>
 #include <limits>
-#include <ctime>
+
 #include <algorithm>
 #include <map>
 #include <getopt.h>
@@ -19,13 +19,14 @@
 #include <json.h>
 
 const char *progname = "check_license";
-const char *version = "1.0.0";
+const char *version = "1.1.0";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
 int process_arguments (int, char **);
 int validate_arguments (void);
 int check( const std::string server_name, const std::string content_server );
+int license( long lic, std::string& license_date );
 void print_help (void);
 void print_usage (void);
 
@@ -33,20 +34,13 @@ char *redis_server = NULL;
 char *server_name = NULL;
 char *content_server = NULL;
 
-int warning = 0;
-int critical = 0;
+bool check_valid_soft = false;
+bool check_valid_hard = false;
 
-struct MTime {
-  int years;
-  int months;
-  int weeks;
-  int days;
-  int hours;
-  int minutes;
-  int seconds;
-};
-
-MTime time_difference( const std::time_t start_time, const std::time_t end_time );
+int warning_soft  = 80;
+int warning_hard  = 40;
+int critical_soft = 20;
+int critical_hard = 10;
 
 /**
  *
@@ -69,12 +63,6 @@ int check( const std::string server_name, const std::string content_server ) {
 
   int state = STATE_UNKNOWN;
 
-  if(warning == 0)
-    warning= 50;
-
-  if(critical == 0)
-    critical= 20;
-
   Redis r(redis_server);
   std::string cache_key = r.cache_key( server_name, content_server );
 
@@ -83,6 +71,8 @@ int check( const std::string server_name, const std::string content_server ) {
     std::cout << "WARNING - no data in our data store found."  << std::endl;
     return STATE_WARNING;
   }
+
+  std::string status = "";
 
   try {
 
@@ -93,44 +83,61 @@ int check( const std::string server_name, const std::string content_server ) {
     json.find("Server", "LicenseValidUntilHard", valid_until_hard);
     json.find("Server", "LicenseValidUntilSoft", valid_until_soft);
 
-    /**
-     * calculate time
-     * valid hard is the last chance
-     * valid soft are the entry into a soft warning phase
-     *
-     * MTime struct holds all diffs between now and valid_until_hard
-     */
-    std::time_t valid_hard = valid_until_hard / 1000;
-    std::time_t now = time(0);   // get time now
-    MTime time_diff = time_difference( now, valid_until_hard  / 1000 );
+    std::string license_date_soft = "";
+    std::string license_date_hard = "";
 
-    int valid_until_days = time_diff.days;
+    int days_left_soft = license( valid_until_hard, license_date_soft );
+    int days_left_hard = license( valid_until_soft, license_date_hard );
 
-    struct tm * timeinfo;
-    timeinfo = localtime(&valid_hard);
+    std::ostringstream ss;
 
-    char license_date[11];
-    strftime(license_date, sizeof(license_date), "%d.%m.%Y", timeinfo);
+    if( check_valid_soft ) {
 
+      if( days_left_soft <= critical_soft ) {
+        status = "CRITICAL"; state = STATE_CRITICAL;
+      } else
+      if( days_left_soft > critical_soft && days_left_soft < warning_soft ) {
+        status = "WARNING";  state = STATE_WARNING;
+      } else {
+        status = "OK";       state = STATE_OK;
+      }
 
-    if( valid_until_days >= warning || valid_until_days == warning ) {
-      state = STATE_OK;
-    } else
-    if( valid_until_days >= critical && valid_until_days <= warning ) {
-      state = STATE_WARNING;
-    } else {
-      state = STATE_CRITICAL;
+      ss
+        << "soft: CoreMedia license is valid until " << license_date_soft
+        << " - <b>" << days_left_soft << " days left</b> "
+        << "(" << status << ")";
     }
 
-    std::cout
-      << "<b>" << valid_until_days << " days left</b>"
-      << "<br>"
-      << "CoreMedia License is valid until " << license_date
-      << " |"
-      << " valid=" << valid_until_days
-      << " warning=" << warning
-      << " critical=" << critical
-      << std::endl;
+    if( check_valid_hard ) {
+
+      if( days_left_hard <= critical_hard ) {
+        status = "CRITICAL"; state = STATE_CRITICAL;
+      } else
+      if( days_left_hard > critical_hard && days_left_hard < warning_hard ) {
+        status = "WARNING";  state = STATE_WARNING;
+      } else {
+        status = "OK";       state = STATE_OK;
+      }
+
+      if( ss.str().size() != 0 )
+        ss << "<br>";
+
+      ss
+        << "hard: CoreMedia license is valid until " << license_date_hard
+        << " - <b>" << days_left_hard << " days left</b> "
+        << "(" << status << ")";
+    }
+
+    ss << " |";
+
+    if( check_valid_soft ) {
+      ss << " valid_soft=" << days_left_soft;
+    }
+    if( check_valid_hard ) {
+      ss << " valid_hard=" << days_left_hard;
+    }
+
+    std::cout << ss.str() << std::endl;
 
   } catch(...) {
 
@@ -141,19 +148,47 @@ int check( const std::string server_name, const std::string content_server ) {
   return state;
 }
 
+/**
+ * calculate time
+ * valid hard is the last chance
+ * valid soft are the entry into a soft warning phase
+ *
+ * TimeDifference struct holds all diffs between now and valid_until
+ */
+int license( long lic, std::string& date ) {
+
+  std::time_t valid = lic / 1000;
+  std::time_t now = time(0);   // get time now
+  TimeDifference time_diff = time_difference( now, lic  / 1000 );
+
+  int days_left = time_diff.days;
+
+  struct tm * timeinfo;
+  timeinfo = localtime(&valid);
+
+  char license_date[11];
+  strftime(license_date, sizeof(license_date), "%d.%m.%Y", timeinfo);
+
+  date = license_date;
+
+  return days_left;
+}
+
 /*
  * process command-line arguments
  */
 int process_arguments (int argc, char **argv) {
 
   int opt = 0;
-  const char* const short_opts = "hVR:H:C:w:c:";
+  const char* const short_opts = "hVR:H:C:tdw:c:";
   const option long_opts[] = {
     {"help"       , no_argument      , nullptr, 'h'},
     {"version"    , no_argument      , nullptr, 'V'},
     {"redis"      , required_argument, nullptr, 'R'},
     {"hostname"   , required_argument, nullptr, 'H'},
     {"contentserver", required_argument, nullptr, 'C'},
+    {"soft"       , no_argument      , nullptr, 't' },
+    {"hard"       , no_argument      , nullptr, 'd' },
     {"warning"    , required_argument, nullptr, 'w'},
     {"critical"   , required_argument, nullptr, 'c'},
     {nullptr      , 0, nullptr, 0}
@@ -181,9 +216,20 @@ int process_arguments (int argc, char **argv) {
       case 'C':
         content_server = optarg;
         break;
+      case 't':
+        check_valid_soft = true;
+        break;
+      case 'd':
+        check_valid_hard = true;
+        break;
       case 'w':                  /* warning size threshold */
         if(is_intnonneg(optarg)) {
-          warning = atoi(optarg);
+          warning_soft = warning_hard = atoi(optarg);
+          break;
+        } else
+        if( strstr(optarg, ",") &&
+            sscanf(optarg, "%d,%d", &warning_soft, &warning_hard) == 2) {
+          warning_soft = warning_hard = atoi(optarg);
           break;
         } else {
           std::cout << "Warning threshold must be integer!" << std::endl;
@@ -191,13 +237,17 @@ int process_arguments (int argc, char **argv) {
         }
       case 'c':                  /* critical size threshold */
         if(is_intnonneg(optarg)) {
-          critical = atoi(optarg);
+          critical_soft = critical_hard = atoi(optarg);
+          break;
+        } else
+        if( strstr(optarg, ",") &&
+            sscanf(optarg, "%d,%d", &critical_soft, &critical_hard) == 2) {
+          critical_soft = critical_hard = atoi(optarg);
           break;
         } else {
           std::cout <<  "Critical threshold must be integer!" << std::endl;
           print_usage();
         }
-
       default:
         print_usage();
         exit(STATE_UNKNOWN);
@@ -212,6 +262,7 @@ int process_arguments (int argc, char **argv) {
  */
 int validate_arguments(void) {
 
+  int result = OK;
   Resolver resolver;
 
   if(redis_server == NULL)
@@ -221,22 +272,22 @@ int validate_arguments(void) {
 
     if(resolver.is_host(redis_server) == false) {
       std::cout << progname << " Invalid redis host or address " << optarg << std::endl;
-      return ERROR;
+      result = ERROR;
     }
   } else {
     std::cerr << "missing 'redis' argument." << std::endl;
-    return ERROR;
+    result = ERROR;
   }
 
   if(server_name != NULL) {
 
     if(resolver.is_host(server_name) == false) {
       std::cout << progname << " Invalid hostname or address " << optarg << std::endl;
-      return ERROR;
+      result = ERROR;
     }
   } else {
     std::cerr << "missing 'hostname' argument." << std::endl;
-    return ERROR;
+    result = ERROR;
   }
 
   if(content_server != NULL)  {
@@ -248,22 +299,26 @@ int validate_arguments(void) {
     };
 
     if( in_array( content_server, app )) {
-      return OK;
+      result = OK;
     } else {
       std::cerr << "'" << content_server << "' is no valid content server!" << std::endl;
-      return ERROR;
+      result = ERROR;
     }
-
   } else {
     std::cerr << "missing 'contentserver' argument." << std::endl;
-    return ERROR;
+    result = ERROR;
   }
 
-  if( warning < critical ) {
+  if( check_valid_soft == false && check_valid_hard == false ) {
+    std::cerr << "please choose --soft and/or --hard for license check." << std::endl;
+    result = ERROR;
+  }
+
+  if( warning_soft < critical_soft || warning_hard < critical_hard ) {
     std::cout << "Warning should be more than critical" << std::endl;
   }
 
-  return OK;
+  return result;
 }
 
 /**
@@ -294,6 +349,15 @@ void print_help (void) {
   std::cout << " -C, --contentserver" << std::endl;
   std::cout << "    the content server." << std::endl;
 
+  std::cout << " -t, --soft" << std::endl;
+  std::cout << "    license valid until soft." << std::endl;
+  std::cout << " -d, --hard" << std::endl;
+  std::cout << "    license valid until hard." << std::endl;
+
+  std::cout << " -w, --warning=WSOFT,WHARD" << std::endl;
+  std::cout << "    exit with WARNING status if license average exceeds WSOFT or WHARD." << std::endl;
+  std::cout << " -c, --critical=WSOFT,CHARD" << std::endl;
+  std::cout << "    exit with CRITICAL status if license average exceeds CSOFT or CHARD." << std::endl;
 }
 
 /**
@@ -302,32 +366,16 @@ void print_help (void) {
 void print_usage (void) {
   std::cout << std::endl;
   std::cout << "Usage:" << std::endl;
-  std::cout << " " << progname << " [-R <redis_server>] -H <hostname> -C <content_server>"  << std::endl;
+  std::cout
+    << " " << progname
+    << " [-R <redis_server>]"
+    << " -H <hostname>"
+    << " -C <content_server>"
+    << " --hard"
+    << " [--soft]"
+    << " [-w <WSOFT,WHARD>]"
+    << " [-c <CSOFT,CHARD>]"
+    << std::endl;
   std::cout << std::endl;
 }
-
-MTime time_difference( const std::time_t start_time, const std::time_t end_time ) {
-
-  const unsigned int YEAR   = 1*60*60*24*7*52;
-  const unsigned int MONTH  = YEAR/12;
-  const unsigned int WEEK   = 1*60*60*24*7;
-  const unsigned int DAY    = 1*60*60*24;
-  const unsigned int HOUR   = 1*60*60;
-  const unsigned int MINUTE = 1*60;
-
-  long difference = difftime( end_time, start_time );
-
-  MTime t;
-
-  t.years   = difference / YEAR;
-  t.months  = difference / MONTH;
-  t.weeks   = difference / WEEK;
-  t.days    = difference / DAY;
-  t.hours   = difference / HOUR;
-  t.minutes = difference / MINUTE;
-  t.seconds = difference;
-
-  return t;
-}
-
 

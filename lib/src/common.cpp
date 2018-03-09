@@ -173,3 +173,26 @@ int service_state( std::string state_string, int state_numeric ) {
   return state;
 }
 
+TimeDifference time_difference( const std::time_t start_time, const std::time_t end_time ) {
+
+  const unsigned int YEAR   = 1*60*60*24*7*52;
+  const unsigned int MONTH  = YEAR/12;
+  const unsigned int WEEK   = 1*60*60*24*7;
+  const unsigned int DAY    = 1*60*60*24;
+  const unsigned int HOUR   = 1*60*60;
+  const unsigned int MINUTE = 1*60;
+
+  long difference = difftime( end_time, start_time );
+
+  TimeDifference t;
+
+  t.years   = difference / YEAR;
+  t.months  = difference / MONTH;
+  t.weeks   = difference / WEEK;
+  t.days    = difference / DAY;
+  t.hours   = difference / HOUR;
+  t.minutes = difference / MINUTE;
+  t.seconds = difference;
+
+  return t;
+}
