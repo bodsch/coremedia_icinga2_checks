@@ -1,4 +1,4 @@
-# `check_license`
+# check_license
 
 This check implements a check for the contentserver license.
 

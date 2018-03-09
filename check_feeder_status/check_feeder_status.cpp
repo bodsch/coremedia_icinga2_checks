@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_feeder_status";
-const char *version = "1.0.0";
+const char *version = "1.0.1";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -365,13 +365,13 @@ int validate_arguments(void) {
     std::vector<std::string> app = {
       "content-feeder",
       "caefeeder-live",
-      "caefeeder-previews"
+      "caefeeder-preview"
     };
 
     if( in_array( feeder, app )) {
       return OK;
     } else {
-      std::cerr << "'" << feeder << "' is no valid content server!" << std::endl;
+      std::cerr << "'" << feeder << "' is no valid feeder service!" << std::endl;
       return ERROR;
     }
 
