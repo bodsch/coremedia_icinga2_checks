@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_nodeexporter_memory";
-const char *version = "1.0.0";
+const char *version = "1.0.1";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
