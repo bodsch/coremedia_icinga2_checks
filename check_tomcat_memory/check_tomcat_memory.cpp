@@ -95,14 +95,14 @@ int check( const std::string server_name, const std::string application, const s
 //     std::cout << memory.dump(2) << std::endl;
 
     int max = memory["max"];
-    uint used = memory["used"];
-    uint committed = memory["committed"];
+    long used = memory["used"];
+    long committed = memory["committed"];
     float percent;
 
     percent = 100.0 * (float)used / (float)committed;
     percent = roundf(percent * 100) / 100;
 
-    char buf[10];
+    char buf[15];
     if( max != -1 )
       memory_max_human_readable = human_readable(max, buf);
     memory_committed_human_readable = human_readable(committed, buf);
