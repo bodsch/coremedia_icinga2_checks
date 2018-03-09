@@ -19,7 +19,7 @@
 #include <json.h>
 
 const char *progname = "check_license";
-const char *version = "1.1.0";
+const char *version = "1.1.1";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -119,8 +119,11 @@ int check( const std::string server_name, const std::string content_server ) {
         status = "OK";       state = STATE_OK;
       }
 
-      if( ss.str().size() != 0 )
+      if( ss.str().size() != 0 ) {
         ss << "<br>";
+        std::cout << ss.str() << std::endl;
+        ss.str(std::string());
+      }
 
       ss
         << "hard: CoreMedia license is valid until " << license_date_hard
