@@ -8,7 +8,9 @@ The measurement points `HeapCacheSize` and `HeapCacheLevel` are used for the UAP
 
 For the BLOB caches, the measuring points `BlobCacheSize` and `BlobCacheLevel`.
 
-The Redis service can also be set using the environment variable `REDIS_HOST`.
+
+
+**The Redis service can also be set using the environment variable `REDIS_HOST`.**
 
 
 ## Usage
