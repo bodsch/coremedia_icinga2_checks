@@ -32,8 +32,8 @@ void print_usage (void);
 char *redis_server = NULL;
 char *server_name = NULL;
 
-int warn_percent = 0;
-int crit_percent = 0;
+int warn_percent = 85;
+int crit_percent = 95;
 float warning = 0;
 float critical = 0;
 
