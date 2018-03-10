@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_nodeexporter_load";
-const char *version = "1.0.1";
+const char *version = "1.0.2";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -82,8 +82,6 @@ int check( const std::string server_name ) {
 
     nlohmann::json load = "";
     json.find("load", load);
-
-    std::cout << load << std::endl;
 /*
     if( load.is_null() )    { std::cout << "is null" << std::endl; }
     if( load.is_boolean() ) { std::cout << "is boolean" << std::endl; }
