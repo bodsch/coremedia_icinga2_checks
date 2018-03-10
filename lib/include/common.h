@@ -63,7 +63,8 @@ enum {
 };
 
 enum FeederState {
-  STOPPED,
+  UNDEFINED = -1,
+  STOPPED = 0,
   STARTING,
   INITIALIZING,
   RUNNING,

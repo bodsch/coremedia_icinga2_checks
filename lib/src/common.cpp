@@ -131,7 +131,7 @@ int service_state( std::string state_string, int state_numeric ) {
 
   int state = STATE_UNKNOWN;
 
-  if( state_numeric != -1 ) {
+  if( state_numeric > UNDEFINED ) {
 
     if( state_numeric == STOPPED ) {
       std::cout << "Service are in <b>stopped</b> state." << std::endl;
@@ -161,7 +161,7 @@ int service_state( std::string state_string, int state_numeric ) {
       std::cout << "Service are in <b>initializing</b> state." << std::endl;
       state  = STATE_WARNING;
     } else
-    if( state_string == "running") {
+    if( state_string == "running" || state_string == "online" ) {
       state = STATE_OK;
     }
     else {

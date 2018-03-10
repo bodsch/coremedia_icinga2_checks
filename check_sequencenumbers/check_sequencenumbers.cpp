@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_sequencenumbers";
-const char *version = "1.0.0";
+const char *version = "1.0.1";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -37,8 +37,8 @@ char *mls = NULL;
 
 int warn_percent = 0;
 int crit_percent = 0;
-int warning = 0;
-int critical = 0;
+int warning = 150;
+int critical = 200;
 
 /**
  *
@@ -89,17 +89,17 @@ int main(int argc, char **argv) {
  */
 int check( const nlohmann::json rls, nlohmann::json mls ) {
 
+  std::string status = "";
   int state = STATE_UNKNOWN;
 
   int mls_sequence_number = 0;
   std::string mls_runlevel = "";
-  int mls_runlevel_numeric = 0;
+  int mls_runlevel_numeric = -1;
 
   int rls_sequence_number = 0;
   std::string rls_controller_state = "";
 
   try {
-
     if( rls != "" ) {
 
       auto it_find_sequence_number  = rls.find("LatestCompletedSequenceNumber");
@@ -113,13 +113,11 @@ int check( const nlohmann::json rls, nlohmann::json mls ) {
     }
 
   } catch(...) {
-
-    std::cout << "error in parsing the rls data" << std::endl;
+    std::cout << "WARNING - error in parsing the rls data" << std::endl;
     return STATE_WARNING;
   }
 
   try {
-
     if( mls != "" ) {
 
       auto it_find_sequence_number  = mls.find("RepositorySequenceNumber");
@@ -137,13 +135,12 @@ int check( const nlohmann::json rls, nlohmann::json mls ) {
     }
 
   } catch(...) {
-
-    std::cout << "error in parsing the mls data" << std::endl;
+    std::cout << "WARNING - error in parsing the mls data" << std::endl;
     return STATE_WARNING;
   }
 
-  int rls_state = service_state(mls_runlevel,mls_runlevel_numeric);
-  int mls_state = service_state(rls_controller_state);
+  int mls_state = service_state(mls_runlevel,mls_runlevel_numeric);
+  int rls_state = service_state(rls_controller_state, UNDEFINED);
 
   if( rls_state != STATE_OK ) {
     return rls_state;
@@ -158,6 +155,7 @@ int check( const nlohmann::json rls, nlohmann::json mls ) {
   if( diff == warning || diff <= warning ) {
 
     std::cout
+      << "OK - "
       << "RLS and MLS in sync"
       << "<br>"
       << "MLS Sequence Number: " << mls_sequence_number
@@ -173,12 +171,15 @@ int check( const nlohmann::json rls, nlohmann::json mls ) {
   }
 
   if( diff >= warning && diff <= critical ) {
-      state = STATE_WARNING;
+    status = "WARNING";
+    state = STATE_WARNING;
   } else {
-      state = STATE_CRITICAL;
+    status = "CRITICAL";
+    state = STATE_CRITICAL;
   }
 
   std::cout
+    << status << " - "
     << "RLS are " << diff << " <b>behind</b> the MLS"
     << "<br>"
     << "MLS Sequence Number: " << mls_sequence_number
