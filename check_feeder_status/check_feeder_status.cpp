@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_feeder_status";
-const char *version = "1.0.1";
+const char *version = "1.0.2";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -91,13 +91,14 @@ int check( const std::string server_name, const std::string feeder ) {
 
 int content_feeder( Json json ) {
 
+  std::string status = "";
   int state = STATE_UNKNOWN;
 
   if(warning == 0)
-    warning= 2500;
+    warning = 2500;
 
   if(critical == 0)
-    critical= 10000;
+    critical = 10000;
 
   std::string feeder_state = "";
   int feeder_state_numeric = UNKNOWN;
@@ -105,6 +106,24 @@ int content_feeder( Json json ) {
   json.find("Feeder", "StateNumeric", (int&)feeder_state_numeric );
 
   if( feeder_state_numeric == -1 ) {
+
+    std::transform(feeder_state.begin(), feeder_state.end(), feeder_state.begin(), ::tolower);
+
+    if( feeder_state == "initializing") {
+      std::cout << "Feeder are in <b>initializing</b> state." << std::endl;
+      status = "WARNING";
+      state  = STATE_WARNING;
+    } else
+    if( feeder_state == "running") {
+      status = "OK";
+      state  = STATE_OK;
+    }
+    else {
+      std::cout << "Feeder are in <b>unknown</b> state." << std::endl;
+      status = "CRITICAL";
+      state  = STATE_CRITICAL;
+    }
+  } else {
 
     if( feeder_state_numeric == STOPPED ) {
       std::cout << "Feeder are in <b>stopped</b> state." << std::endl;
@@ -125,22 +144,6 @@ int content_feeder( Json json ) {
       std::cout << "Feeder are in <b>failed</b> state." << std::endl;
       state  = STATE_CRITICAL;
     }
-
-  } else {
-
-    std::transform(feeder_state.begin(), feeder_state.end(), feeder_state.begin(), ::tolower);
-
-    if( feeder_state == "initializing") {
-      std::cout << "Feeder are in <b>initializing</b> state." << std::endl;
-      state  = STATE_WARNING;
-    } else
-    if( feeder_state == "running") {
-      state  = STATE_OK;
-    }
-    else {
-      std::cout << "Feeder are in <b>unknown</b> state." << std::endl;
-      state  = STATE_CRITICAL;
-    }
   }
 
   if( state == STATE_OK ) {
@@ -154,6 +157,7 @@ int content_feeder( Json json ) {
     if( pending_documents != -1 ) {
 
       std::cout
+        << status << " - "
         << "Pending Documents: " << pending_documents
         << "<br>"
         << "Pending Events: " << pending_events
@@ -164,6 +168,7 @@ int content_feeder( Json json ) {
     } else {
 
       std::cout
+        << status << " - "
         << "Pending Events: " << pending_events
         << " |"
         << " pending_events=" << pending_events
@@ -176,6 +181,7 @@ int content_feeder( Json json ) {
 
 int cae_feeder( Json json ) {
 
+  std::string status = "";
   int state = STATE_UNKNOWN;
 
   if(warning == 0)
@@ -223,17 +229,21 @@ int cae_feeder( Json json ) {
   int diff_entries = max_entries - current_entries;
 
   if( diff_entries > critical ) {
+    status = "CRITICAL";
     state = STATE_CRITICAL;
   } else
   if( diff_entries > warning || diff_entries == warning ) {
+    status = "WARNING";
     state = STATE_WARNING;
   } else {
+    status = "OK";
     state = STATE_OK;
   }
 
   if( max_entries == current_entries ) {
 
     std::cout
+      << status << " - "
       << "all " << max_entries << " Elements feeded"
       << "<br>"
       << "Heartbeat " << heartbeat << " ms"
@@ -246,6 +256,7 @@ int cae_feeder( Json json ) {
   } else {
 
     std::cout
+      << status << " - "
       << current_entries << " Elements of " << max_entries << " feeded."
       << "<br>"
       << diff_entries << " elements left."
