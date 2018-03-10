@@ -42,9 +42,24 @@ void Json::find(const std::string base, const std::string search, int &result) {
 }
 
 /**
- * search an json object from type int
+ * search an json object from type long
  */
 void Json::find(const std::string base, const std::string search, long &result) {
+
+  nlohmann::json j = string2json(_json);
+  nlohmann::json v = json_value(j, base);
+
+  try {
+    result = v[search];
+  } catch(...) {
+    result = -1;
+  }
+}
+
+/**
+ * search an json object from type float
+ */
+void Json::find(const std::string base, const std::string search, float &result) {
 
   nlohmann::json j = string2json(_json);
   nlohmann::json v = json_value(j, base);
@@ -193,8 +208,9 @@ void Json::replaceAll(std::string& str, const std::string& from, const std::stri
 /**
  * helper function to dump an json object
  */
-void Json::dump(nlohmann::json j) {
+void Json::dump() {
 
+  nlohmann::json j = string2json(_json);
   for (auto it = j.begin(); it != j.end(); ++it) {
     std::cout << it.key() << " | " << it.value() << std::endl;
   }

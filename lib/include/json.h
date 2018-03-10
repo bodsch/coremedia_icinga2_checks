@@ -20,15 +20,17 @@ class Json {
     void              find(const std::string base, const std::string search, std::string &result);
     void              find(const std::string base, const std::string search, int &result);
     void              find(const std::string base, const std::string search, long &result);
+    void              find(const std::string base, const std::string search, float &result);
     void              find(const std::string base, const std::string search, nlohmann::json &result);
     void              find(const std::string base, const std::string search, bool &result);
     nlohmann::json    find(const std::string base, const std::string search);
 
+    void              dump();
   private:
 
     nlohmann::json  json_value(nlohmann::json j, std::string s);
     nlohmann::json  string2json(std::string string);
-    void            dump(nlohmann::json j);
+
 
     void            replaceAll(std::string& str, const std::string& from, const std::string& to);
 
