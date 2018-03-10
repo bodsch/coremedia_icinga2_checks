@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_nodeexporter_disk";
-const char *version = "1.0.1";
+const char *version = "1.0.2";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -33,8 +33,8 @@ char *redis_server = NULL;
 char *server_name = NULL;
 char *partition_name = NULL;
 
-int warn_percent = 0;
-int crit_percent = 0;
+int warn_percent = 85;
+int crit_percent = 90;
 float warning = 0;
 float critical = 0;
 
@@ -101,11 +101,9 @@ int check( const std::string server_name ) {
     if( filesystem.size() >= 1 ) {
 
       std::string mountpoint = "";
-      std::string _avail = "0";
-      std::string _size = "0";
-      float avail = 0;
-      float size = 0;
-      float used = 0;
+      long avail = 0;
+      long size = 0;
+      long used = 0;
       int used_percent = 0;
       std::string size_human_readable = "";
       std::string used_human_readable = "";
@@ -114,9 +112,9 @@ int check( const std::string server_name ) {
       std::string key = "";
       nlohmann::json value = "";
 
-      for (auto it = filesystem.begin(); it != filesystem.end(); ++it) {
+      for( auto it = filesystem.begin(); it != filesystem.end(); ++it ) {
 
-        key = it.key();
+        key   = it.key();
         value = it.value();
 /*
         if( value.is_null() )    { std::cout << "is null" << std::endl; }
@@ -127,7 +125,6 @@ int check( const std::string server_name ) {
         if( value.is_string() )  { std::cout << "is string" << std::endl; }
 */
         if( value.is_object() ) {
-
           mountpoint = filesystem[key]["mountpoint"];
           if(mountpoint == partition_name) {
             break;
@@ -138,7 +135,6 @@ int check( const std::string server_name ) {
       }
 
       if( key.empty() ) {
-
         std::cout
           << "partition '" << partition_name << "' not found."
           << std::endl;
@@ -148,26 +144,33 @@ int check( const std::string server_name ) {
 
       auto it_find_size  = value.find("size");
       auto it_find_avail = value.find("avail");
+      auto it_find_used = value.find("used");
+      auto it_find_used_percent = value.find("used_percent");
 
       if(it_find_size != value.end())
-        _size = value["size"];
+        size = value["size"];
 
       if(it_find_avail != value.end())
-        _avail = value["avail"];
+        avail = value["avail"];
 
-      size  = std::stof(_size.c_str());
-      avail = std::stof(_avail.c_str());
+      if(it_find_used != value.end())
+        used = value["used"];
+
+      if(it_find_used_percent != value.end())
+        used_percent = value["used_percent"];
 
       if( size > 0 ) {
 
-        used  = size - avail;
-        used_percent  = 100 * used / size;
+        if( used == 0 && used_percent == 0) {
+          used  = size - avail;
+          used_percent  = 100 * used / size;
 
-        used_percent  = roundf(used_percent *100) / 100;
-        used_percent  = ((int)(used_percent * 100 + .5) / 100.0);
+          used_percent  = roundf(used_percent *100) / 100;
+          used_percent  = ((int)(used_percent * 100 + .5) / 100.0);
+        }
 
-        size_human_readable = human_readable(size,buf);
-        used_human_readable = human_readable(used,buf);
+        size_human_readable  = human_readable(size,buf);
+        used_human_readable  = human_readable(used,buf);
         avail_human_readable = human_readable(avail,buf);
 
         if( used_percent == warn_percent || used_percent <= warn_percent ) {
@@ -182,19 +185,15 @@ int check( const std::string server_name ) {
           state = STATE_CRITICAL;
         }
 
-        // transform float to string *without* precision and no decimal digits
-        std::stringstream ss;
-        ss << std::fixed << std::setprecision(0) << used;
-
         std::cout
           << status << " - "
           << "partition '" << partition_name << "' - "
           << "size: " << size_human_readable << ", "
           << "used: " << used_human_readable << ", "
           << "used percent: " << used_percent << "% |"
-          << " size=" << _size
-          << " used=" <<  ss.str()
-          << " percent=" << used_percent
+          << " size=" << size
+          << " used=" <<  used
+          << " used_percent=" << used_percent
           << std::endl;
       }
     }
