@@ -19,7 +19,7 @@
 #include <json.h>
 
 const char *progname = "check_license";
-const char *version = "1.1.1";
+const char *version = "1.1.2";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -27,6 +27,7 @@ int process_arguments (int, char **);
 int validate_arguments (void);
 int check( const std::string server_name, const std::string content_server );
 int license( long lic, std::string& license_date );
+int maximum( int a, int b );
 void print_help (void);
 void print_usage (void);
 
@@ -61,7 +62,8 @@ int main(int argc, char **argv) {
  */
 int check( const std::string server_name, const std::string content_server ) {
 
-  int state = STATE_UNKNOWN;
+  int state_soft = STATE_UNKNOWN;
+  int state_hard = STATE_UNKNOWN;
 
   Redis r(redis_server);
   std::string cache_key = r.cache_key( server_name, content_server );
@@ -94,29 +96,29 @@ int check( const std::string server_name, const std::string content_server ) {
     if( check_valid_soft ) {
 
       if( days_left_soft <= critical_soft ) {
-        status = "CRITICAL"; state = STATE_CRITICAL;
+        status = "CRITICAL"; state_soft = STATE_CRITICAL;
       } else
       if( days_left_soft > critical_soft && days_left_soft < warning_soft ) {
-        status = "WARNING";  state = STATE_WARNING;
+        status = "WARNING";  state_soft = STATE_WARNING;
       } else {
-        status = "OK";       state = STATE_OK;
+        status = "OK";       state_soft = STATE_OK;
       }
 
       ss
+        << status << " - "
         << "soft: CoreMedia license is valid until " << license_date_soft
-        << " - <b>" << days_left_soft << " days left</b> "
-        << "(" << status << ")";
+        << " - <b>" << days_left_soft << " days left</b> ";
     }
 
     if( check_valid_hard ) {
 
       if( days_left_hard <= critical_hard ) {
-        status = "CRITICAL"; state = STATE_CRITICAL;
+        status = "CRITICAL"; state_hard = STATE_CRITICAL;
       } else
       if( days_left_hard > critical_hard && days_left_hard < warning_hard ) {
-        status = "WARNING";  state = STATE_WARNING;
+        status = "WARNING";  state_hard = STATE_WARNING;
       } else {
-        status = "OK";       state = STATE_OK;
+        status = "OK";       state_hard = STATE_OK;
       }
 
       if( ss.str().size() != 0 ) {
@@ -126,9 +128,9 @@ int check( const std::string server_name, const std::string content_server ) {
       }
 
       ss
+        << status << " - "
         << "hard: CoreMedia license is valid until " << license_date_hard
-        << " - <b>" << days_left_hard << " days left</b> "
-        << "(" << status << ")";
+        << " - <b>" << days_left_hard << " days left</b> ";
     }
 
     ss << " |";
@@ -148,7 +150,7 @@ int check( const std::string server_name, const std::string content_server ) {
     return STATE_WARNING;
   }
 
-  return state;
+  return maximum( state_soft, state_hard );
 }
 
 /**
@@ -382,3 +384,4 @@ void print_usage (void) {
   std::cout << std::endl;
 }
 
+int maximum( int a, int b ) { return a < b ? b : a ; }
