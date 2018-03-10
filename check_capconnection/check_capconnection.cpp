@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_capconnection";
-const char *version = "1.0.0";
+const char *version = "1.0.1";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -51,6 +51,7 @@ int main(int argc, char **argv) {
  */
 int check( const std::string server_name, const std::string application ) {
 
+  std::string status = "";
   int state = STATE_UNKNOWN;
 
   Redis r(redis_server);
@@ -70,12 +71,17 @@ int check( const std::string server_name, const std::string application ) {
     json.find("CapConnection", "Open", cap_connection);
 
     if( cap_connection == true ) {
+      status = "OK";
       state = STATE_OK;
     } else {
+      status = "CRITICAL";
       state = STATE_CRITICAL;
     }
 
-    std::cout << "Cap Connection <b>" << ( cap_connection ? "open" : "not exists" ) << "</b>" << std::endl;
+    std::cout
+      << status << " - "
+      << "Cap Connection <b>" << ( cap_connection ? "open" : "not exists" ) << "</b>"
+      << std::endl;
 
   } catch(...) {
 
@@ -83,7 +89,7 @@ int check( const std::string server_name, const std::string application ) {
     return STATE_WARNING;
   }
 
-  return(state);
+  return state;
 }
 
 
