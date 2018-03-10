@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_runlevel";
-const char *version = "1.0.0";
+const char *version = "1.0.1";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -75,17 +75,6 @@ int check( const std::string server_name, const std::string content_server ) {
 
     if( runlevel_numeric == -1 ) {
 
-      if( runlevel_numeric == 0) { runlevel = "stopped"; state  = STATE_WARNING; }
-      else
-      if( runlevel_numeric == 1) { runlevel = "starting"; state  = STATE_UNKNOWN; }
-      else
-      if( runlevel_numeric == 2) { runlevel = "initializing"; state  = STATE_UNKNOWN; }
-      else
-      if( runlevel_numeric == 3) { runlevel = "running"; state  = STATE_OK; }
-      else { runlevel = "failed"; state  = STATE_CRITICAL; }
-
-    } else {
-
       std::transform(runlevel.begin(), runlevel.end(), runlevel.begin(), ::tolower);
 
       if(runlevel == "offline") { status = "CRITICAL"; state  = STATE_CRITICAL; }
@@ -94,9 +83,21 @@ int check( const std::string server_name, const std::string content_server ) {
       else
       if( runlevel == "administration") { status = "WARNING"; state  = STATE_WARNING; }
       else { status = "CRITICAL"; state  = STATE_CRITICAL; }
+    } else {
+
+      if( runlevel_numeric == 0) { runlevel = "stopped"; state  = STATE_WARNING; }
+      else
+      if( runlevel_numeric == 1) { runlevel = "starting"; state  = STATE_UNKNOWN; }
+      else
+      if( runlevel_numeric == 2) { runlevel = "initializing"; state  = STATE_UNKNOWN; }
+      else
+      if( runlevel_numeric == 3) { runlevel = "running"; state  = STATE_OK; }
+      else { runlevel = "failed"; state  = STATE_CRITICAL; }
     }
 
-    std::cout << "Runlevel in <b>" << runlevel << "</b> Mode" << std::endl;
+    std::cout
+      << status << " - "
+      << "Runlevel in <b>" << runlevel << "</b> Mode" << std::endl;
 
   } catch(...) {
 
