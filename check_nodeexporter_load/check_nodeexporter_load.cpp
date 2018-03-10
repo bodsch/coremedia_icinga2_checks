@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_nodeexporter_load";
-const char *version = "1.0.0";
+const char *version = "1.0.1";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -32,10 +32,8 @@ void print_usage (void);
 char *redis_server = NULL;
 char *server_name = NULL;
 
-int warn_percent = 0;
-int crit_percent = 0;
-int warning = 0;
-int critical = 0;
+float warning = 2;
+float critical = 3;
 
 /**
  *
@@ -57,13 +55,13 @@ int main(int argc, char **argv) {
 int check( const std::string server_name ) {
 
   int state = STATE_UNKNOWN;
-
+/*
   if(warning == 0)
     warning= 50;
 
   if(critical == 0)
     critical= 20;
-
+*/
   Redis r(redis_server);
   std::string cache_key = r.cache_key( server_name, "node-exporter" );
 
@@ -73,9 +71,10 @@ int check( const std::string server_name ) {
   }
 
   int count_cpu = 0;
-  std::string shortterm = "0";
-  std::string midterm = "0";
-  std::string longterm = "0";
+  std::string status = "";
+  float shortterm = 0.0;
+  float midterm   = 0.0;
+  float longterm  = 0.0;
 
   try {
 
@@ -83,6 +82,8 @@ int check( const std::string server_name ) {
 
     nlohmann::json load = "";
     json.find("load", load);
+
+    std::cout << load << std::endl;
 /*
     if( load.is_null() )    { std::cout << "is null" << std::endl; }
     if( load.is_boolean() ) { std::cout << "is boolean" << std::endl; }
@@ -113,17 +114,34 @@ int check( const std::string server_name ) {
     return STATE_WARNING;
   }
 
-  if( strtof((shortterm).c_str(),0) == warning || strtof((shortterm).c_str(),0) <= warning ) {
+  if( shortterm == warning || shortterm <= warning ) {
+    status = "OK";
     state = STATE_OK;
   } else
-  if( strtof((shortterm).c_str(),0) >= warning && strtof((shortterm).c_str(),0) <= critical ) {
+  if( shortterm >= warning && shortterm <= critical ) {
+    status = "WARNING";
     state = STATE_WARNING;
   } else {
+    status = "CRITICAL";
     state = STATE_CRITICAL;
   }
 
+/*
+  if( strtof((shortterm).c_str(),0) == warning || strtof((shortterm).c_str(),0) <= warning ) {
+    status = "OK";
+    state = STATE_OK;
+  } else
+  if( strtof((shortterm).c_str(),0) >= warning && strtof((shortterm).c_str(),0) <= critical ) {
+    status = "WARNING";
+    state = STATE_WARNING;
+  } else {
+    status = "CRITICAL";
+    state = STATE_CRITICAL;
+  }
+*/
   std::cout
-    << "load: " << shortterm << ", " << midterm << ", " << longterm << ", "
+    << status << " - "
+    << "load average: " << shortterm << ", " << midterm << ", " << longterm << ", "
     << "(" << count_cpu << " " << (count_cpu > 1 ? "cpus" : "cpu" ) << ")"
     << std::endl;
 
