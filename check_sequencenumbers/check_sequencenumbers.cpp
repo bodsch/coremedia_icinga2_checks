@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_sequencenumbers";
-const char *version = "1.0.1";
+const char *version = "1.0.3";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -187,6 +187,8 @@ int check( const nlohmann::json rls, nlohmann::json mls ) {
     << "RLS Sequence Number: " << rls_sequence_number
     << " |"
     << " diff=" << diff
+    << ";" << warning
+    << ";" << critical
     << " mls_seq_nr=" << mls_sequence_number
     << " rls_seq_nr=" << rls_sequence_number
     << std::endl;
