@@ -80,6 +80,14 @@ int check( const std::string server_name, const std::string content_server ) {
 
     Json json(redis_data);
 
+    long timestamp    = json.timestamp("Server");
+    int global_status = json.status("Server");
+    int bean_state = bean_timeout( timestamp, global_status );
+
+    if( bean_state != STATE_OK ) {
+      return bean_state;
+    }
+
     long valid_until_hard = 0;
     long valid_until_soft = 0;
     json.find("Server", "LicenseValidUntilHard", valid_until_hard);
@@ -122,7 +130,7 @@ int check( const std::string server_name, const std::string content_server ) {
       }
 
       if( ss.str().size() != 0 ) {
-        ss << "<br>";
+        ss << "<br>\n";
         std::cout << ss.str() << std::endl;
         ss.str(std::string());
       }
@@ -137,9 +145,13 @@ int check( const std::string server_name, const std::string content_server ) {
 
     if( check_valid_soft ) {
       ss << " valid_soft=" << days_left_soft;
+      ss << " soft_warn=" << warning_soft;
+      ss << " soft_crit=" << critical_soft;
     }
     if( check_valid_hard ) {
       ss << " valid_hard=" << days_left_hard;
+      ss << " hard_warn=" << warning_hard;
+      ss << " hard_crit=" << critical_hard;
     }
 
     std::cout << ss.str() << std::endl;

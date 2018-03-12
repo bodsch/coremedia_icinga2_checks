@@ -2,6 +2,100 @@
 #include "../include/json.h"
 
 
+long Json::timestamp(const std::string base) {
+
+  nlohmann::json search;
+  nlohmann::json j = string2json(_json);
+  long timestamp = 0;
+  int size = j.size();
+
+//   std::cout << j.dump(2) << std::endl;
+/*
+    if( j.is_null() )    { std::cout << "is null" << std::endl; }
+    if( j.is_boolean() ) { std::cout << "is boolean" << std::endl; }
+    if( j.is_number() )  { std::cout << "is number" << std::endl; }
+    if( j.is_object() )  { std::cout << "is object" << std::endl; }
+    if( j.is_array() )   { std::cout << "is array" << std::endl; }
+    if( j.is_string() )  { std::cout << "is string" << std::endl; }
+*/
+
+  if( j.is_object() ) {
+    auto it_find_base  = j.find(base);
+
+    if(it_find_base != j.end())
+      timestamp = j[base];
+  } else {
+    for( int i = 0; i <= size; ++i) {
+      search = j.at(i);
+      if ( search.find(base) != search.end()) { break; }
+    }
+
+    if( search.size() == 1 ) {
+
+      try {
+        timestamp = search[base]["timestamp"];
+      } catch (nlohmann::json::parse_error& e) {
+        // output exception information
+        std::cout << "message: " << e.what() << '\n'
+                  << "exception id: " << e.id << '\n'
+                  << "byte position of error: " << e.byte << std::endl;
+      } catch(...) {
+        std::cout << "ERROR - can\'t parse json."  << std::endl;
+      }
+    }
+  }
+
+  return timestamp;
+}
+
+
+int Json::status(const std::string base) {
+
+  nlohmann::json search;
+  nlohmann::json j = string2json(_json);
+  int status = 500;
+  int size = j.size();
+
+//   std::cout << j.dump(2) << std::endl;
+/*
+    if( j.is_null() )    { std::cout << "is null" << std::endl; }
+    if( j.is_boolean() ) { std::cout << "is boolean" << std::endl; }
+    if( j.is_number() )  { std::cout << "is number" << std::endl; }
+    if( j.is_object() )  { std::cout << "is object" << std::endl; }
+    if( j.is_array() )   { std::cout << "is array" << std::endl; }
+    if( j.is_string() )  { std::cout << "is string" << std::endl; }
+*/
+
+  if( j.is_object() ) {
+    auto it_find_base  = j.find(base);
+
+    if(it_find_base != j.end())
+      status = j[base];
+  } else {
+    for( int i = 0; i <= size; ++i) {
+      search = j.at(i);
+      if ( search.find(base) != search.end()) { break; }
+    }
+
+    if( search.size() == 1 ) {
+
+      try {
+        status = search[base]["status"];
+      } catch (nlohmann::json::parse_error& e) {
+        // output exception information
+        std::cout << "message: " << e.what() << '\n'
+                  << "exception id: " << e.id << '\n'
+                  << "byte position of error: " << e.byte << std::endl;
+      } catch(...) {
+        std::cout << "ERROR - can\'t parse json."  << std::endl;
+      }
+    }
+  }
+
+  return status;
+}
+
+
 /**
  * search an json object from type nlohmann::json
  */

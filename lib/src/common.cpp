@@ -173,6 +173,50 @@ int service_state( std::string state_string, int state_numeric ) {
   return state;
 }
 
+
+int bean_timeout( long timestamp, int status, int warning, int critical ) {
+
+  if( status != 200 ) {
+    std::cout << "CRITICAL - last check has failed" << std::endl;
+    return STATE_CRITICAL;
+  }
+
+  int result = STATE_UNKNOWN;
+
+  std::time_t now   = time(0);   // get time now
+
+  TimeDifference time_diff = time_difference( timestamp, now );
+
+  int difference = time_diff.seconds;
+
+  if( difference > critical ) {
+    std::cout
+      << "CRITICAL - last check creation is out of date (" << difference << " seconds)"
+      << std::endl;
+    result = STATE_CRITICAL;
+  } else
+  if( difference > warning || difference == warning ) {
+    std::cout
+      << "WARNING - last check creation is out of date (" << difference << " seconds)"
+      << std::endl;
+    result = STATE_WARNING;
+  } else {
+    result = STATE_OK;
+  }
+/*
+  std::cout
+    << "-------------------------------" << std::endl
+    << " status  : " << status << std::endl
+    << " warning : " << warning << std::endl
+    << " critical: " << critical << std::endl
+    << " seconds : " << difference << std::endl
+    << "-------------------------------"
+    << std::endl;
+*/
+  return result;
+}
+
+
 TimeDifference time_difference( const std::time_t start_time, const std::time_t end_time ) {
 
   const unsigned int YEAR   = 1*60*60*24*7*52;

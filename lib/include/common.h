@@ -102,5 +102,6 @@ char* human_readable(double size/*in bytes*/, char *buf);
 bool in_array(const std::string &value, const std::vector<std::string> &array);
 int service_state( std::string feeder_state , int feeder_state_numeric = -1 );
 TimeDifference time_difference( const std::time_t start_time, const std::time_t end_time );
+int bean_timeout( long timestamp, int status, int warning = 90, int critical = 120);
 
 #endif /* _COMMON_H_ */

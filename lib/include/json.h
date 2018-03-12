@@ -16,6 +16,9 @@ class Json {
   public:
                       Json(const std::string s ) { _json = s; }
 
+    long              timestamp(const std::string base);
+    int               status(const std::string base);
+
     void              find(const std::string base, nlohmann::json &result);
     void              find(const std::string base, const std::string search, std::string &result);
     void              find(const std::string base, const std::string search, int &result);
