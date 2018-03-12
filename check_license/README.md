@@ -6,6 +6,13 @@ Since version 170x exists an JMX measurement points for the valid license dates 
 
 These check can be run agains `soft`, `hard` or `both` license dates (see the examples below).
 
+Default values are:
+
+- `warning soft`  80 days
+- `warning hard`  40 days
+- `critical soft` 20 days
+- `critical hard` 10 days
+
 
 **The Redis service can also be set using the environment variable `REDIS_HOST`.**
 
