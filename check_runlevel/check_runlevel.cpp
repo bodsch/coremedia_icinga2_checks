@@ -85,14 +85,14 @@ int check( const std::string server_name, const std::string content_server ) {
       else { status = "CRITICAL"; state  = STATE_CRITICAL; }
     } else {
 
-      if( runlevel_numeric == 0) { runlevel = "stopped"; state  = STATE_WARNING; }
+      if( runlevel_numeric == 0) { runlevel = "stopped"; status = "WARNING";  state  = STATE_WARNING; }
       else
-      if( runlevel_numeric == 1) { runlevel = "starting"; state  = STATE_UNKNOWN; }
+      if( runlevel_numeric == 1) { runlevel = "starting"; status = "UNKNOWN";  state  = STATE_UNKNOWN; }
       else
-      if( runlevel_numeric == 2) { runlevel = "initializing"; state  = STATE_UNKNOWN; }
+      if( runlevel_numeric == 2) { runlevel = "initializing"; status = "UNKNOWN";  state  = STATE_UNKNOWN; }
       else
-      if( runlevel_numeric == 3) { runlevel = "running"; state  = STATE_OK; }
-      else { runlevel = "failed"; state  = STATE_CRITICAL; }
+      if( runlevel_numeric == 3) { runlevel = "running"; status = "OK";  state  = STATE_OK; }
+      else { runlevel = "failed"; status = "CRITICAL";  state  = STATE_CRITICAL; }
     }
 
     std::cout
