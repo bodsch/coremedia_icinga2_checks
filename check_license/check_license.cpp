@@ -19,7 +19,7 @@
 #include <json.h>
 
 const char *progname = "check_license";
-const char *version = "1.1.2";
+const char *version = "1.1.4";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
