@@ -145,13 +145,13 @@ int check( const std::string server_name, const std::string content_server ) {
 
     if( check_valid_soft ) {
       ss << " valid_soft=" << days_left_soft;
-      ss << " soft_warn=" << warning_soft;
-      ss << " soft_crit=" << critical_soft;
+      ss << ";" << warning_soft;
+      ss << ";" << critical_soft;
     }
     if( check_valid_hard ) {
       ss << " valid_hard=" << days_left_hard;
-      ss << " hard_warn=" << warning_hard;
-      ss << " hard_crit=" << critical_hard;
+      ss << ";" << warning_hard;
+      ss << ";" << critical_hard;
     }
 
     std::cout << ss.str() << std::endl;
