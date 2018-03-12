@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_feeder_status";
-const char *version = "1.0.2";
+const char *version = "1.0.3";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -127,21 +127,26 @@ int content_feeder( Json json ) {
 
     if( feeder_state_numeric == STOPPED ) {
       std::cout << "Feeder are in <b>stopped</b> state." << std::endl;
+      status = "WARNING";
       state  = STATE_WARNING;
     } else
     if( feeder_state_numeric == STARTING ) {
       std::cout << "Feeder are in <b>starting</b> state." << std::endl;
+      status = "UNKNOWN";
       state  = STATE_UNKNOWN;
     } else
     if( feeder_state_numeric == INITIALIZING ) {
       std::cout << "Feeder are in <b>initializing</b> state." << std::endl;
+      status = "UNKNOWN";
       state  = STATE_UNKNOWN;
     } else
     if( feeder_state_numeric == RUNNING) {
+      status = "OK";
       state  = STATE_OK;
     }
     else {
       std::cout << "Feeder are in <b>failed</b> state." << std::endl;
+      status = "CRITICAL";
       state  = STATE_CRITICAL;
     }
   }
