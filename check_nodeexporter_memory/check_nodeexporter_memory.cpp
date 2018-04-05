@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_nodeexporter_memory";
-const char *version = "1.0.1";
+const char *version = "1.1.0";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -74,17 +74,13 @@ int check( const std::string server_name ) {
 
   std::string status = "";
 
-  std::string mem_available = "0";
-  std::string mem_free      = "0";
-  std::string mem_total     = "0";
-  float mem_used         = 0;
-  float mem_used_percent = 0;
+  long mem_total        = 0;
+  long mem_used         = 0;
+  long mem_used_percent = 0;
 
-  std::string swap_total  = "0";
-  std::string swap_cached = "0";
-  std::string swap_free   = "0";
-  float swap_used         = 0;
-  float swap_used_percent = 0;
+  long swap_total        = 0;
+  long swap_used         = 0;
+  long swap_used_percent = 0;
 
   std::string mem_total_human_readable = "";
   std::string mem_used_human_readable = "";
@@ -101,6 +97,7 @@ int check( const std::string server_name ) {
     Json json(redis_data);
 
     nlohmann::json memory = "";
+    nlohmann::json swap = "";
     json.find("memory", memory);
 
     if( !memory.is_object() ) {
@@ -110,13 +107,20 @@ int check( const std::string server_name ) {
       return STATE_WARNING;
     }
 
-    json.find("memory", "MemTotal", mem_total);
-    json.find("memory", "MemFree", mem_free);
-    json.find("memory", "MemAvailable", mem_available);
+    /*
+     * {"available":2077310976,"free":159703040,"total":10316976128,"used":8239665152,"used_percent":79}
+     * {"cached":35016704,"free":4179431424,"total":4294963200,"used":115531776,"used_percent":2}
+     */
+    memory = json.find("memory", "memory");
+    swap   = json.find("memory", "swap");
 
-    json.find("memory", "SwapTotal", swap_total);
-    json.find("memory", "SwapFree", swap_free);
-    json.find("memory", "SwapCached", swap_cached);
+    mem_total        = memory["total"];
+    mem_used         = memory["used"];
+    mem_used_percent = memory["used_percent"];
+
+    swap_total        = swap["total"];
+    swap_used         = swap["used"];
+    swap_used_percent = swap["used_percent"];
 
   } catch(...) {
 
@@ -124,20 +128,7 @@ int check( const std::string server_name ) {
     return STATE_WARNING;
   }
 
-
-  mem_used          = std::stof(mem_total.c_str()) - std::stof(mem_available.c_str());
-  mem_used_percent  = ( 100 * mem_used / std::stof(mem_total.c_str()) );
-  mem_used_percent  = roundf(mem_used_percent *100) / 100;
-
-  mem_used_percent = ((int)(mem_used_percent * 100 + .5) / 100.0);
-
-  if( std::stol(swap_total.c_str()) != 0 ) {
-
-    swap_used          = std::stof(swap_total.c_str()) - std::stof(swap_free.c_str());
-    swap_used          = ((int)(swap_used * 100 + .5) / 100.0);
-    swap_used_percent  = 100 * swap_used / std::stof(swap_total.c_str());
-    swap_used_percent  = roundf(swap_used_percent *100) / 100;
-    swap_used_percent  = ((int)(swap_used_percent * 100 + .5) / 100.0);
+  if( swap_total != 0 ) {
 
     if( swap_used_percent == warn_percent || swap_used_percent <= warn_percent ) {
       status    = "OK";
@@ -156,7 +147,7 @@ int check( const std::string server_name ) {
       output_status = stringStream.str();
     }
 
-    swap_total_human_readable = human_readable(std::stol(swap_total.c_str()), buf);
+    swap_total_human_readable = human_readable(swap_total, buf);
     swap_used_human_readable = human_readable(swap_used, buf);
 
     std::cout
@@ -186,7 +177,7 @@ int check( const std::string server_name ) {
     output_status = stringStream.str();
   }
 
-  mem_total_human_readable = human_readable(std::stol(mem_total.c_str()), buf);
+  mem_total_human_readable = human_readable(mem_total, buf);
   mem_used_human_readable = human_readable(mem_used, buf);
 
   std::cout
