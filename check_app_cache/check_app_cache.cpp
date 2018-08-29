@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_app_cache";
-const char *version = "1.0.2";
+const char *version = "1.0.3";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -276,9 +276,7 @@ int validate_arguments(void) {
       "cae-live-9"
     };
 
-    if( in_array( application, app )) {
-      return OK;
-    } else {
+    if( !in_array( application, app )) {
       std::cerr << "'" << application << "' is no valid application!" << std::endl;
       return ERROR;
     }
@@ -288,13 +286,11 @@ int validate_arguments(void) {
     return ERROR;
   }
 
-  if(cache_type != NULL)  {
+  if(cache_type != NULL) {
 
     std::vector<std::string> srv = { "uapi-cache","blob-cache" };
 
-    if( in_array( cache_type, srv )) {
-      return OK;
-    } else {
+    if( !in_array( cache_type, srv )) {
       std::cerr << "'" << cache_type << "' is no valid cache type!" << std::endl;
       return ERROR;
     }
@@ -330,6 +326,26 @@ void print_help (void) {
   std::cout << "valid cache types are:" << std::endl;
   std::cout << "  - uapi-cache and " << std::endl;
   std::cout << "  - blob-cache" << std::endl;
+  std::cout << "valid applications are:" << std::endl;
+  std::cout << "  - workflow-server, " << std::endl;
+  std::cout << "  - content-feeder, " << std::endl;
+  std::cout << "  - user-changes, " << std::endl;
+  std::cout << "  - elastic-worker, " << std::endl;
+  std::cout << "  - caefeeder-preview, " << std::endl;
+  std::cout << "  - caefeeder-live, " << std::endl;
+  std::cout << "  - cae-preview, " << std::endl;
+  std::cout << "  - studio, " << std::endl;
+  std::cout << "  - sitemanager," << std::endl;
+  std::cout << "  - cae-live," << std::endl;
+  std::cout << "  - cae-live-1," << std::endl;
+  std::cout << "  - cae-live-2," << std::endl;
+  std::cout << "  - cae-live-3," << std::endl;
+  std::cout << "  - cae-live-4," << std::endl;
+  std::cout << "  - cae-live-5," << std::endl;
+  std::cout << "  - cae-live-6," << std::endl;
+  std::cout << "  - cae-live-7," << std::endl;
+  std::cout << "  - cae-live-8 and" << std::endl;
+  std::cout << "  - cae-live-9" << std::endl;
   print_usage();
   std::cout << "Options:" << std::endl;
   std::cout << " -h, --help" << std::endl;

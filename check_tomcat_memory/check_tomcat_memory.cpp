@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_tomcat_memory";
-const char *version = "1.0.2";
+const char *version = "1.0.3";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -359,6 +359,26 @@ void print_help (void) {
   std::cout << "valid memory types are:" << std::endl;
   std::cout << "  - heap-mem and " << std::endl;
   std::cout << "  - perm-mem" << std::endl;
+  std::cout << "valid applications are:" << std::endl;
+  std::cout << "  - workflow-server, " << std::endl;
+  std::cout << "  - content-feeder, " << std::endl;
+  std::cout << "  - user-changes, " << std::endl;
+  std::cout << "  - elastic-worker, " << std::endl;
+  std::cout << "  - caefeeder-preview, " << std::endl;
+  std::cout << "  - caefeeder-live, " << std::endl;
+  std::cout << "  - cae-preview, " << std::endl;
+  std::cout << "  - studio, " << std::endl;
+  std::cout << "  - sitemanager," << std::endl;
+  std::cout << "  - cae-live," << std::endl;
+  std::cout << "  - cae-live-1," << std::endl;
+  std::cout << "  - cae-live-2," << std::endl;
+  std::cout << "  - cae-live-3," << std::endl;
+  std::cout << "  - cae-live-4," << std::endl;
+  std::cout << "  - cae-live-5," << std::endl;
+  std::cout << "  - cae-live-6," << std::endl;
+  std::cout << "  - cae-live-7," << std::endl;
+  std::cout << "  - cae-live-8 and" << std::endl;
+  std::cout << "  - cae-live-9" << std::endl;
   print_usage();
   std::cout << "Options:" << std::endl;
   std::cout << " -h, --help" << std::endl;

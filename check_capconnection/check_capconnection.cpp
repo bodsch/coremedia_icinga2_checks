@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_capconnection";
-const char *version = "1.0.2";
+const char *version = "1.0.3";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -184,7 +184,6 @@ int validate_arguments(void) {
       "cae-preview",
       "studio",
       "sitemanager",
-      "cae-live",
       "cae-live-1",
       "cae-live-2",
       "cae-live-3",
@@ -193,7 +192,8 @@ int validate_arguments(void) {
       "cae-live-6",
       "cae-live-7",
       "cae-live-8",
-      "cae-live-9"
+      "cae-live-9",
+      "cae-live"
     };
 
     if( in_array( application, app )) {
@@ -230,8 +230,17 @@ void print_help (void) {
   std::cout << "  - caefeeder-live, " << std::endl;
   std::cout << "  - cae-preview, " << std::endl;
   std::cout << "  - studio, " << std::endl;
-  std::cout << "  - sitemanager and" << std::endl;
-  std::cout << "  - cae-live" << std::endl;
+  std::cout << "  - sitemanager, " << std::endl;
+  std::cout << "  - cae-live, " << std::endl;
+  std::cout << "  - cae-live-1, " << std::endl;
+  std::cout << "  - cae-live-2, " << std::endl;
+  std::cout << "  - cae-live-3, " << std::endl;
+  std::cout << "  - cae-live-4, " << std::endl;
+  std::cout << "  - cae-live-5, " << std::endl;
+  std::cout << "  - cae-live-6, " << std::endl;
+  std::cout << "  - cae-live-7, " << std::endl;
+  std::cout << "  - cae-live-8 and " << std::endl;
+  std::cout << "  - cae-live-9" << std::endl;
   print_usage();
   std::cout << "Options:" << std::endl;
   std::cout << " -h, --help" << std::endl;

@@ -3,29 +3,36 @@
 
 std::string Redis::cache_key(const std::string hostname, const std::string service) {
 
-    std::vector<std::string> app = {
-      "content-management-server",
-      "master-live-server",
-      "replication-live-server",
-      "workflow-server",
-      "content-feeder",
-      "user-changes",
-      "elastic-worker",
-      "caefeeder-preview",
-      "caefeeder-live",
-      "cae-preview",
-      "studio",
-      "sitemanager",
-      "cae-live",
-      "node-exporter"
-    };
+  std::vector<std::string> app = {
+    "content-management-server",
+    "master-live-server",
+    "replication-live-server",
+    "workflow-server",
+    "content-feeder",
+    "user-changes",
+    "elastic-worker",
+    "caefeeder-preview",
+    "caefeeder-live",
+    "cae-preview",
+    "studio",
+    "sitemanager",
+    "cae-live",
+    "cae-live-1",
+    "cae-live-2",
+    "cae-live-3",
+    "cae-live-4",
+    "cae-live-5",
+    "cae-live-6",
+    "cae-live-7",
+    "cae-live-8",
+    "cae-live-9",
+    "node-exporter"
+  };
 
-    if( ! in_array( service, app )) {
-      std::cerr << "'" << service << "' is no valid service!" << std::endl;
-      return "";
-    }
-
-
+  if( ! in_array( service, app )) {
+    std::cerr << "'" << service << "' is no valid service for redis cache!" << std::endl;
+    return "";
+  }
 
   /**
    * calculate the cache key for the data in our redis */
