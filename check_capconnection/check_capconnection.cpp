@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_capconnection";
-const char *version = "1.0.1";
+const char *version = "1.0.2";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -184,7 +184,16 @@ int validate_arguments(void) {
       "cae-preview",
       "studio",
       "sitemanager",
-      "cae-live"
+      "cae-live",
+      "cae-live-1",
+      "cae-live-2",
+      "cae-live-3",
+      "cae-live-4",
+      "cae-live-5",
+      "cae-live-6",
+      "cae-live-7",
+      "cae-live-8",
+      "cae-live-9"
     };
 
     if( in_array( application, app )) {
