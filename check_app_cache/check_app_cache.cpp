@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_app_cache";
-const char *version = "1.0.3";
+const char *version = "1.0.4";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -303,10 +303,10 @@ int validate_arguments(void) {
   if( warn_percent == 0 && crit_percent == 0 && warn_size_bytes == 0 && crit_size_bytes == 0 ) {
     return ERROR;
   } else
-  if( warn_percent < crit_percent ) {
-    std::cout << "Warning percentage should be more than critical percentage" << std::endl;
+  if( warn_percent > crit_percent ) {
+    std::cout << "Warning percentage (" << warn_percent << ") should be more than critical (" << crit_percent << ") percentage" << std::endl;
   } else
-  if( warn_size_bytes < crit_size_bytes ) {
+  if( warn_size_bytes > crit_size_bytes ) {
     std::cout << "Warning free space should be more than critical free space" << std::endl;
   }
 
