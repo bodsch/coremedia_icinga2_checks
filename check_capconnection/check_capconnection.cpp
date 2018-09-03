@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_capconnection";
-const char *version = "1.0.3";
+const char *version = "1.0.4";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -31,6 +31,8 @@ void print_usage (void);
 char *redis_server = NULL;
 char *server_name = NULL;
 char *application = NULL;
+
+bool DEBUG = false;
 
 /**
  *
@@ -58,7 +60,7 @@ int check( const std::string server_name, const std::string application ) {
   std::string cache_key = r.cache_key( server_name, application );
 
   std::string redis_data;
-  if( r.get(cache_key, redis_data) == false ) {
+  if( r.get(cache_key, redis_data) == false || redis_data == "[]" ) {
     std::cout << "WARNING - no data in our data store found."  << std::endl;
     return STATE_WARNING;
   }
@@ -67,8 +69,16 @@ int check( const std::string server_name, const std::string application ) {
 
     Json json(redis_data);
 
+    if( DEBUG == true ) {
+      std::cout << redis_data << std::endl;
+    }
+
     bool cap_connection = false;
     json.find("CapConnection", "Open", cap_connection);
+
+    if( DEBUG == true ) {
+      std::cout << cap_connection << std::endl;
+    }
 
     if( cap_connection == true ) {
       status = "OK";
@@ -99,7 +109,7 @@ int check( const std::string server_name, const std::string application ) {
 int process_arguments (int argc, char **argv) {
 
   int opt = 0;
-  const char* const short_opts = "hVR:H:A:";
+  const char* const short_opts = "hVR:H:DA:";
   const option long_opts[] = {
     {"help"       , no_argument      , nullptr, 'h'},
     {"version"    , no_argument      , nullptr, 'V'},
@@ -127,6 +137,9 @@ int process_arguments (int argc, char **argv) {
         break;
       case 'H':
         server_name = optarg;
+        break;
+      case 'D':
+        DEBUG = true;
         break;
       case 'A':
         application = optarg;

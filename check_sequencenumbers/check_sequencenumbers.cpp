@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_sequencenumbers";
-const char *version = "1.0.3";
+const char *version = "1.0.4";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -39,6 +39,8 @@ int warn_percent = 0;
 int crit_percent = 0;
 int warning = 150;
 int critical = 200;
+
+bool DEBUG = false;
 
 /**
  *
@@ -70,6 +72,14 @@ int main(int argc, char **argv) {
 
   bool rls_found = extract_data( r, "replication-live-server", rls_data );
   bool mls_found = extract_data( r, "master-live-server", mls_data );
+
+  if( DEBUG == true ) {
+    std::cout << "RLS " << ( rls_found ? "found" : "not found" ) << std::endl;
+    std::cout << "RLS : " << rls_data << std::endl;
+
+    std::cout << "MLS " << ( mls_found ? "found" : "not found" ) << std::endl;
+    std::cout << "MLS : " << mls_data << std::endl;
+  }
 
   if( rls_found == false ) {
     std::cout << "no data for the replication-liver-server found" << std::endl;
@@ -142,6 +152,11 @@ int check( const nlohmann::json rls, nlohmann::json mls ) {
   int mls_state = service_state(mls_runlevel,mls_runlevel_numeric);
   int rls_state = service_state(rls_controller_state, UNDEFINED);
 
+  if( DEBUG == true ) {
+    std::cout << "RLS state " << rls_state << std::endl;
+    std::cout << "MLS state " << mls_state << std::endl;
+  }
+
   if( rls_state != STATE_OK ) {
     return rls_state;
   }
@@ -200,6 +215,10 @@ int check( const nlohmann::json rls, nlohmann::json mls ) {
 
 bool detect_mls( Redis r, const std::string rls, std::string &result) {
 
+  if( DEBUG == true ) {
+    std::cout << "detect MLS" << std::endl;
+  }
+
   std::string cache_key = r.cache_key( rls, "replication-live-server" );
 
   std::string redis_data;
@@ -219,16 +238,17 @@ bool detect_mls( Redis r, const std::string rls, std::string &result) {
 
     json.find("Replicator", "MasterLiveServer", master_live_server);
 
+    if( DEBUG == true ) {
+      std::cout << "found MLS : " << master_live_server << std::endl;
+    }
+
     if( master_live_server != "" ){
-//       std::cout << master_live_server.dump(2) <<  std::endl;
       result = master_live_server["host"];
     } else {
-//       std::cout << "can't auto detect the master-liver-server hostname" << std::endl;
       return false;
     }
 
   } catch(...) {
-//     std::cout << "WARNING - parsing of json is corrupt."  << std::endl;
     return false;
   }
 
@@ -256,9 +276,8 @@ bool extract_data( Redis r, std::string app, nlohmann::json &result ) {
   }
 
   try {
-
     Json json(redis_data);
-    json.find( find , result );
+    json.find( find, result );
 
   } catch(...) {
 
@@ -276,7 +295,7 @@ bool extract_data( Redis r, std::string app, nlohmann::json &result ) {
 int process_arguments (int argc, char **argv) {
 
   int opt = 0;
-  const char* const short_opts = "hVR:r:m:w:c:";
+  const char* const short_opts = "hVR:Dr:m:w:c:";
   const option long_opts[] = {
     {"help"       , no_argument      , nullptr, 'h'},
     {"version"    , no_argument      , nullptr, 'V'},
@@ -304,6 +323,9 @@ int process_arguments (int argc, char **argv) {
       case 'R':
         redis_server = optarg;
         break;
+      case 'D':
+        DEBUG = true;
+        break;
       case 'r':
         rls = optarg;
         break;
@@ -317,6 +339,7 @@ int process_arguments (int argc, char **argv) {
         } else {
           std::cout << "Warning threshold must be integer!" << std::endl;
           print_usage();
+          break;
         }
       case 'c':                  /* critical size threshold */
         if(is_intnonneg(optarg)) {
@@ -325,6 +348,7 @@ int process_arguments (int argc, char **argv) {
         } else {
           std::cout <<  "Critical threshold must be integer!" << std::endl;
           print_usage();
+          break;
         }
 
       default:
@@ -392,7 +416,7 @@ void print_help (void) {
   std::cout << progname << " v" << version << std::endl;
   std::cout << "  Copyright (c) " << copyright << " " << email << std::endl;
   std::cout << std::endl;
-  std::cout << "This plugin will check the differece of sequencenumbers between an replication-liver-ser and his master-live-server" << std::endl;
+  std::cout << "This plugin will check the difference of sequencenumbers between an replication-liver-ser and his master-live-server" << std::endl;
   std::cout << "Since CoreMedia 170x, the RLS announces its MLS." << std::endl;
   std::cout << "If the master-live-server is not specified, it will be attempted to determine it automatically." << std::endl;
   std::cout << "But this only works from version 170x!" << std::endl;

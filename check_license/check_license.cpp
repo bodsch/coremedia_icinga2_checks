@@ -19,7 +19,7 @@
 #include <json.h>
 
 const char *progname = "check_license";
-const char *version = "1.1.4";
+const char *version = "1.1.5";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -42,6 +42,8 @@ int warning_soft  = 80;
 int warning_hard  = 40;
 int critical_soft = 20;
 int critical_hard = 10;
+
+bool DEBUG = false;
 
 /**
  *
@@ -74,6 +76,10 @@ int check( const std::string server_name, const std::string content_server ) {
     return STATE_WARNING;
   }
 
+  if( DEBUG == true ) {
+    std::cout << redis_data << std::endl;
+  }
+
   std::string status = "";
 
   try {
@@ -82,7 +88,13 @@ int check( const std::string server_name, const std::string content_server ) {
 
     long timestamp    = json.timestamp("Server");
     int global_status = json.status("Server");
-    int bean_state = bean_timeout( timestamp, global_status );
+    int bean_state    = bean_timeout( timestamp, global_status, 200, 400 );
+
+    if( DEBUG == true ) {
+      std::cout << "timestamp     : " << timestamp << std::endl;
+      std::cout << "global_status : " << global_status << std::endl;
+      std::cout << "bean_state    : " << bean_state << std::endl;
+    }
 
     if( bean_state != STATE_OK ) {
       return bean_state;
@@ -98,6 +110,11 @@ int check( const std::string server_name, const std::string content_server ) {
 
     int days_left_soft = license( valid_until_hard, license_date_soft );
     int days_left_hard = license( valid_until_soft, license_date_hard );
+
+    if( DEBUG == true ) {
+      std::cout << "soft : " << days_left_soft << std::endl;
+      std::cout << "hard : " << days_left_hard << std::endl;
+    }
 
     std::ostringstream ss;
 
@@ -131,7 +148,7 @@ int check( const std::string server_name, const std::string content_server ) {
 
       if( ss.str().size() != 0 ) {
         ss << "<br>\n";
-        std::cout << ss.str() << std::endl;
+        std::cout << ss.str();
         ss.str(std::string());
       }
 
@@ -197,7 +214,7 @@ int license( long lic, std::string& date ) {
 int process_arguments (int argc, char **argv) {
 
   int opt = 0;
-  const char* const short_opts = "hVR:H:C:tdw:c:";
+  const char* const short_opts = "hVR:H:DC:tdw:c:";
   const option long_opts[] = {
     {"help"       , no_argument      , nullptr, 'h'},
     {"version"    , no_argument      , nullptr, 'V'},
@@ -230,6 +247,9 @@ int process_arguments (int argc, char **argv) {
       case 'H':
         server_name = optarg;
         break;
+      case 'D':
+        DEBUG = true;
+        break;
       case 'C':
         content_server = optarg;
         break;
@@ -251,6 +271,7 @@ int process_arguments (int argc, char **argv) {
         } else {
           std::cout << "Warning threshold must be integer!" << std::endl;
           print_usage();
+          break;
         }
       case 'c':                  /* critical size threshold */
         if(is_intnonneg(optarg)) {
@@ -264,6 +285,7 @@ int process_arguments (int argc, char **argv) {
         } else {
           std::cout <<  "Critical threshold must be integer!" << std::endl;
           print_usage();
+          break;
         }
       default:
         print_usage();

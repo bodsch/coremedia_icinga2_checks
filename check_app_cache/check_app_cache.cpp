@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_app_cache";
-const char *version = "1.0.4";
+const char *version = "1.0.5";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -38,6 +38,7 @@ int crit_percent = 95;
 float warn_size_bytes = 0;
 float crit_size_bytes = 0;
 
+bool DEBUG = false;
 
 /**
  *
@@ -67,6 +68,10 @@ int check( const std::string server_name, const std::string application, const s
   if( r.get(cache_key, redis_data) == false ) {
     std::cout << "WARNING - no data in our data store found."  << std::endl;
     return STATE_WARNING;
+  }
+
+  if( DEBUG == true ) {
+    std::cout << redis_data << std::endl;
   }
 
   try {
@@ -122,6 +127,7 @@ int check( const std::string server_name, const std::string application, const s
       << " |"
       << " max=" << cache_max
       << " used=" << cache_used
+      << " percent_used=" << percent
       << std::endl;
 
   } catch(...) {
@@ -194,6 +200,7 @@ int process_arguments (int argc, char **argv) {
         } else {
           std::cout << "Warning threshold must be integer or percentage!" << std::endl;
           print_usage();
+          break;
         }
       case 'c':                  /* critical size threshold */
         if(is_intnonneg (optarg)) {
@@ -209,6 +216,7 @@ int process_arguments (int argc, char **argv) {
         } else {
           std::cout <<  "Critical threshold must be integer or percentage!" << std::endl;
           print_usage();
+          break;
         }
 
       default:
@@ -370,7 +378,7 @@ void print_help (void) {
 void print_usage (void) {
   std::cout << std::endl;
   std::cout << "Usage:" << std::endl;
-  std::cout << " " << progname << " [-R <redis_server>] -H <hostname> -C <cache type>"  << std::endl;
+  std::cout << " " << progname << " [-R <redis_server>] -H <hostname> -A, <application> -C <cache type>"  << std::endl;
   std::cout << std::endl;
 }
 

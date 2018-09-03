@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_nodeexporter_disk";
-const char *version = "1.0.2";
+const char *version = "1.0.3";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -37,6 +37,8 @@ int warn_percent = 85;
 int crit_percent = 90;
 float warning = 0;
 float critical = 0;
+
+bool DEBUG = false;
 
 /**
  *
@@ -81,21 +83,32 @@ int check( const std::string server_name ) {
 
     Json json(redis_data);
 
+    if( DEBUG == true ) {
+      std::cout << redis_data << std::endl;
+    }
+
     nlohmann::json filesystem = "";
     json.find("filesystem", filesystem);
 /*
-    if( filesystem.is_null() )    { std::cout << "is null" << std::endl; }
-    if( filesystem.is_boolean() ) { std::cout << "is boolean" << std::endl; }
-    if( filesystem.is_number() )  { std::cout << "is number" << std::endl; }
-    if( filesystem.is_object() )  { std::cout << "is object" << std::endl; }
-    if( filesystem.is_array() )   { std::cout << "is array" << std::endl; }
-    if( filesystem.is_string() )  { std::cout << "is string" << std::endl; }
+    if( DEBUG == true ) {
+      std::cout << "filesystem : ";
+      if( filesystem.is_null() )    { std::cout << "is null" << std::endl; }
+      if( filesystem.is_boolean() ) { std::cout << "is boolean" << std::endl; }
+      if( filesystem.is_number() )  { std::cout << "is number" << std::endl; }
+      if( filesystem.is_object() )  { std::cout << "is object" << std::endl; }
+      if( filesystem.is_array() )   { std::cout << "is array" << std::endl; }
+      if( filesystem.is_string() )  { std::cout << "is string" << std::endl; }
+    }
 */
     if( !filesystem.is_object() ) {
       std::cout
         << "<b>no filesystem measurement points available.</b>"
         << std::endl;
       return STATE_WARNING;
+    }
+
+    if( DEBUG == true ) {
+      std::cout << filesystem << std::endl;
     }
 
     if( filesystem.size() >= 1 ) {
@@ -116,14 +129,20 @@ int check( const std::string server_name ) {
 
         key   = it.key();
         value = it.value();
+
+        if( DEBUG == true ) {
 /*
-        if( value.is_null() )    { std::cout << "is null" << std::endl; }
-        if( value.is_boolean() ) { std::cout << "is boolean" << std::endl; }
-        if( value.is_number() )  { std::cout << "is number" << std::endl; }
-        if( value.is_object() )  { std::cout << "is object" << std::endl; }
-        if( value.is_array() )   { std::cout << "is array" << std::endl; }
-        if( value.is_string() )  { std::cout << "is string" << std::endl; }
+          std::cout << "value : ";
+          if( value.is_null() )    { std::cout << "is null" << std::endl; }
+          if( value.is_boolean() ) { std::cout << "is boolean" << std::endl; }
+          if( value.is_number() )  { std::cout << "is number" << std::endl; }
+          if( value.is_object() )  { std::cout << "is object" << std::endl; }
+          if( value.is_array() )   { std::cout << "is array" << std::endl; }
+          if( value.is_string() )  { std::cout << "is string" << std::endl; }
 */
+          std::cout << value << std::endl;
+        }
+
         if( value.is_object() ) {
           mountpoint = filesystem[key]["mountpoint"];
           if(mountpoint == partition_name) {
@@ -132,6 +151,10 @@ int check( const std::string server_name ) {
             key = "";
           }
         }
+      }
+
+      if( DEBUG == true ) {
+        std::cout << key << std::endl;
       }
 
       if( key.empty() ) {
@@ -213,7 +236,7 @@ int check( const std::string server_name ) {
 int process_arguments (int argc, char **argv) {
 
   int opt = 0;
-  const char* const short_opts = "hVR:H:P:w:c:";
+  const char* const short_opts = "hVR:H:DP:w:c:";
   const option long_opts[] = {
     {"help"       , no_argument      , nullptr, 'h'},
     {"version"    , no_argument      , nullptr, 'V'},
@@ -244,6 +267,9 @@ int process_arguments (int argc, char **argv) {
       case 'H':
         server_name = optarg;
         break;
+      case 'D':
+        DEBUG = true;
+        break;
       case 'P':
         partition_name = optarg;
         break;
@@ -264,6 +290,7 @@ int process_arguments (int argc, char **argv) {
         }
         else {
           std::cout << "Warning threshold must be integer or percentage!" << std::endl;
+          break;
         }
       case 'c':                  /* critical size threshold */
         if (is_intnonneg (optarg)) {
@@ -282,6 +309,7 @@ int process_arguments (int argc, char **argv) {
         }
         else {
           std::cout << "Critical threshold must be integer or percentage!" << std::endl;
+          break;
         }
 
       default:

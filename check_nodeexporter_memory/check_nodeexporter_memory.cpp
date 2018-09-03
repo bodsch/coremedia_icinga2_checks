@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_nodeexporter_memory";
-const char *version = "1.1.0";
+const char *version = "1.1.1";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -36,6 +36,8 @@ int warn_percent = 85;
 int crit_percent = 95;
 float warning = 0;
 float critical = 0;
+
+bool DEBUG = false;
 
 /**
  *
@@ -107,6 +109,9 @@ int check( const std::string server_name ) {
       return STATE_WARNING;
     }
 
+    if( DEBUG == true ) {
+      std::cout << memory << std::endl;
+    }
     /*
      * {"available":2077310976,"free":159703040,"total":10316976128,"used":8239665152,"used_percent":79}
      * {"cached":35016704,"free":4179431424,"total":4294963200,"used":115531776,"used_percent":2}
@@ -114,14 +119,21 @@ int check( const std::string server_name ) {
     memory = json.find("memory", "memory");
     swap   = json.find("memory", "swap");
 
+    if( DEBUG == true ) {
+      std::cout << memory << std::endl;
+      std::cout << swap << std::endl;
+    }
+    // {"available":1107382272,"free":138268672,"total":2985177088,"used":1877794816,"used_percent":62}
     mem_total        = memory["total"];
     mem_used         = memory["used"];
     mem_used_percent = memory["used_percent"];
 
+    // {"cached":0,"free":0,"total":0}
     swap_total        = swap["total"];
-    swap_used         = swap["used"];
-    swap_used_percent = swap["used_percent"];
-
+    if( swap_total != 0) {
+      swap_used         = swap["used"];
+      swap_used_percent = swap["used_percent"];
+    }
   } catch(...) {
 
     std::cout << "WARNING - parsing of json is corrupt."  << std::endl;
@@ -198,7 +210,7 @@ int check( const std::string server_name ) {
 int process_arguments (int argc, char **argv) {
 
   int opt = 0;
-  const char* const short_opts = "hVR:H:w:c:";
+  const char* const short_opts = "hVR:H:Dw:c:";
   const option long_opts[] = {
     {"help"       , no_argument      , nullptr, 'h'},
     {"version"    , no_argument      , nullptr, 'V'},
@@ -228,6 +240,9 @@ int process_arguments (int argc, char **argv) {
       case 'H':
         server_name = optarg;
         break;
+      case 'D':
+        DEBUG = true;
+        break;
       case 'w':                  /* warning size threshold */
         if (is_intnonneg (optarg)) {
           warning = (float) atoi (optarg);
@@ -245,6 +260,7 @@ int process_arguments (int argc, char **argv) {
         }
         else {
           std::cout << "Warning threshold must be integer or percentage!" << std::endl;
+          break;
         }
       case 'c':                  /* critical size threshold */
         if (is_intnonneg (optarg)) {
@@ -263,6 +279,7 @@ int process_arguments (int argc, char **argv) {
         }
         else {
           std::cout << "Critical threshold must be integer or percentage!" << std::endl;
+          break;
         }
 
       default:

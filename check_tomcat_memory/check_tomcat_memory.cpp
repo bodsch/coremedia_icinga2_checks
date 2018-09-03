@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_tomcat_memory";
-const char *version = "1.0.3";
+const char *version = "1.0.4";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -33,11 +33,12 @@ char *server_name = NULL;
 char *application = NULL;
 char *memory_type = NULL;
 
-int warn_percent = 0;
-int crit_percent = 0;
+int warn_percent = 90;
+int crit_percent = 95;
 float warn_size_bytes = 0;
 float crit_size_bytes = 0;
 
+bool DEBUG = false;
 
 /**
  *
@@ -69,6 +70,10 @@ int check( const std::string server_name, const std::string application, const s
     return STATE_WARNING;
   }
 
+  if( DEBUG == true ) {
+    std::cout << redis_data << std::endl;
+  }
+
   try {
 
     std::string memory_type = "";
@@ -83,13 +88,17 @@ int check( const std::string server_name, const std::string application, const s
     if(type == "heap-mem") {
       json.find("Memory", "HeapMemoryUsage", memory);
       memory_type = "Heap";
-      warn_percent = 80;
-      crit_percent = 90;
+      if(warn_percent == 0)
+        warn_percent = 80;
+      if(crit_percent == 0)
+        crit_percent = 90;
     } else {
       json.find("Memory", "NonHeapMemoryUsage", memory);
       memory_type = "Perm";
-      warn_percent = 98;
-      crit_percent = 99;
+      if(warn_percent == 0)
+        warn_percent = 98;
+      if(crit_percent == 0)
+        crit_percent = 99;
     }
 
 //     std::cout << memory.dump(2) << std::endl;
@@ -105,10 +114,18 @@ int check( const std::string server_name, const std::string application, const s
     char buf[15];
     if( max != -1 )
       memory_max_human_readable = human_readable(max, buf);
+
     memory_committed_human_readable = human_readable(committed, buf);
     memory_used_human_readable      = human_readable(used, buf);
 
     // -------------------------------------------------------------------
+
+    if( DEBUG == true ) {
+
+      std::cout << percent << std::endl;
+      std::cout << "warn : " << warn_percent << std::endl;
+      std::cout << "crit : " << crit_percent << std::endl;
+    }
 
     if( percent == warn_percent || percent <= warn_percent ) {
       status    = "OK";
@@ -165,10 +182,10 @@ int check( const std::string server_name, const std::string application, const s
 /*
  * process command-line arguments
  */
-int process_arguments (int argc, char **argv) {
+int process_arguments(int argc, char **argv) {
 
   int opt = 0;
-  const char* const short_opts = "hVR:H:A:M:w:c:";
+  const char* const short_opts = "hVR:H:DA:M:w:c:";
   const option long_opts[] = {
     {"help"       , no_argument      , nullptr, 'h'},
     {"version"    , no_argument      , nullptr, 'V'},
@@ -200,6 +217,9 @@ int process_arguments (int argc, char **argv) {
       case 'H':
         server_name = optarg;
         break;
+      case 'D':
+        DEBUG = true;
+        break;
       case 'A':
         application = optarg;
         break;
@@ -220,6 +240,7 @@ int process_arguments (int argc, char **argv) {
         } else {
           std::cout << "Warning threshold must be integer or percentage!" << std::endl;
           print_usage();
+          break;
         }
       case 'c':                  /* critical size threshold */
         if(is_intnonneg (optarg)) {
@@ -235,14 +256,15 @@ int process_arguments (int argc, char **argv) {
         } else {
           std::cout <<  "Critical threshold must be integer or percentage!" << std::endl;
           print_usage();
+          break;
         }
 
       default:
+
         print_usage();
         exit(STATE_UNKNOWN);
     }
   }
-
   return validate_arguments();
 }
 
@@ -305,9 +327,7 @@ int validate_arguments(void) {
       "cae-live-9"
     };
 
-    if( in_array( application, app )) {
-      return OK;
-    } else {
+    if( !in_array( application, app )) {
       std::cerr << "'" << application << "' is no valid application!" << std::endl;
       return ERROR;
     }
@@ -321,9 +341,7 @@ int validate_arguments(void) {
 
     std::vector<std::string> srv = { "heap-mem","perm-mem" };
 
-    if( in_array( memory_type, srv )) {
-      return OK;
-    } else {
+    if( !in_array( memory_type, srv )) {
       std::cerr << "'" << memory_type << "' is no valid memory type!" << std::endl;
       return ERROR;
     }
@@ -336,10 +354,10 @@ int validate_arguments(void) {
   if( warn_percent == 0 && crit_percent == 0 && warn_size_bytes == 0 && crit_size_bytes == 0 ) {
     return ERROR;
   } else
-  if( warn_percent < crit_percent ) {
-    std::cout << "Warning percentage should be more than critical percentage" << std::endl;
+  if( warn_percent > crit_percent ) {
+    std::cout << "Warning percentage (" << warn_percent << ") should be more than critical (" << crit_percent << ") percentage" << std::endl;
   } else
-  if( warn_size_bytes < crit_size_bytes ) {
+  if( warn_size_bytes > crit_size_bytes ) {
     std::cout << "Warning free space should be more than critical free space" << std::endl;
   }
 
@@ -394,7 +412,10 @@ void print_help (void) {
   std::cout << "    the name of the application" << std::endl;
   std::cout << " -M, --memory" << std::endl;
   std::cout << "    the tomcat memory type." << std::endl;
-
+  std::cout << " -w, --warning" << std::endl;
+  std::cout << "    warning memory usage" << std::endl;
+  std::cout << " -c, --critical" << std::endl;
+  std::cout << "    critical memory usage" << std::endl;
 }
 
 /**

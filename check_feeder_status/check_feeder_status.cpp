@@ -18,7 +18,7 @@
 #include <json.h>
 
 const char *progname = "check_feeder_status";
-const char *version = "1.0.3";
+const char *version = "1.0.4";
 const char *copyright = "2018";
 const char *email = "Bodo Schulz <bodo@boone-schulz.de>";
 
@@ -325,6 +325,7 @@ int process_arguments (int argc, char **argv) {
         } else {
           std::cout << "Warning threshold must be integer!" << std::endl;
           print_usage();
+          break;
         }
       case 'c':                  /* critical size threshold */
         if(is_intnonneg(optarg)) {
@@ -333,6 +334,7 @@ int process_arguments (int argc, char **argv) {
         } else {
           std::cout <<  "Critical threshold must be integer!" << std::endl;
           print_usage();
+          break;
         }
 
       default:
