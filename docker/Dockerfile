@@ -19,6 +19,8 @@ RUN \
     curl \
     flex \
     git \
+    hiredis \
+    libev \
     hiredis-dev \
     libev-dev
 
@@ -45,22 +47,7 @@ RUN \
   cmake --build build -- -j3
 
 RUN \
-  apk del --quiet \
-    build-base \
-    bison \
-    cmake \
-    curl \
-    flex \
-    git \
-    hiredis-dev \
-    libev-dev
-
-RUN \
   ls -l /tmp/coremedia_icinga2_checks/build/check_*
-
-RUN \
-  apk add --quiet \
-    g++ hiredis libev
 
 RUN \
   for c in $(ls -1 /tmp/coremedia_icinga2_checks/build/check_*) ; \

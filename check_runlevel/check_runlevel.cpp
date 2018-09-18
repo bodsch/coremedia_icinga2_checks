@@ -134,10 +134,10 @@ int process_arguments (int argc, char **argv) {
     switch (opt) {
       case 'h':
         print_help();
-        exit(STATE_UNKNOWN);
+        exit(STATE_OK);
       case 'V':
         std::cout << progname << " v" << version << std::endl;
-        exit(STATE_UNKNOWN);
+        exit(STATE_OK);
       case 'R':
         redis_server = optarg;
         break;
