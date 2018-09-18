@@ -1,4 +1,6 @@
 
+dist: trusty
+
 language: cpp
 
 before_install:
@@ -29,15 +31,20 @@ matrix:
       env:
         - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
 
+install:
+  - make
+  - cd docker
+  - docker build --rm --no-cache --tag docker-cm-icinga2-checks .
 
-jobs:
-  include:
-
-    - stage: build
-      script:
-        - make
-
-    - stage: build docker
-      script:
-        - cd docker
-        - docker build --rm --no-cache --tag docker-cm-icinga2-checks .
+#jobs:
+#  include:
+#
+#    - stage: build
+#      script:
+#        - make
+#
+#    - stage: build docker
+#      script:
+#        - cd docker
+#        - docker build --rm --no-cache --tag docker-cm-icinga2-checks .
+#
