@@ -33,18 +33,5 @@ matrix:
 
 install:
   - make
-  - cd docker
-  - docker build --rm --no-cache --tag docker-cm-icinga2-checks .
-
-#jobs:
-#  include:
-#
-#    - stage: build
-#      script:
-#        - make
-#
-#    - stage: build docker
-#      script:
-#        - cd docker
-#        - docker build --rm --no-cache --tag docker-cm-icinga2-checks .
-#
+#  - cd docker
+#  - docker build --rm --no-cache --tag docker-cm-icinga2-checks .
