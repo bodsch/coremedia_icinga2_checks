@@ -55,6 +55,19 @@ RUN \
     hiredis-dev \
     libev-dev
 
+RUN \
+  ls -l /tmp/coremedia_icinga2_checks/build/check_*
+
+RUN \
+  apk add --quiet \
+    g++ hiredis libev
+
+RUN \
+  for c in $(ls -1 /tmp/coremedia_icinga2_checks/build/check_*) ; \
+  do \
+    ${c} --version ; \
+  done
+
 CMD [ "/bin/bash" ]
 
 # EOF

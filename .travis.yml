@@ -1,0 +1,20 @@
+
+language: cpp
+
+compiler: g++
+
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install -y libhiredis-dev libev-dev cmake
+
+jobs:
+  include:
+
+    - stage: build
+      script:
+        - make
+
+    - stage: build docker
+      script:
+        - cd docker
+        - docker build --rm --no-cache --tag docker-cm-icinga2-checks .

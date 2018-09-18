@@ -13,6 +13,8 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+
 option(test "Build test check." OFF)
 
 # find_package(libev REQUIRED)
@@ -51,8 +53,8 @@ set(INCLUDE_PATH
   3rdParty/redox/build
 )
 
-find_library(LIB_REDOX libredox.so ${INCLUDE_PATH})
-find_library(LIB_EV libev.so ${INCLUDE_PATH})
+find_library(LIB_REDOX libredox.so ${INCLUDE_PATH} REQUIRED)
+find_library(LIB_EV libev.so ${INCLUDE_PATH} REQUIRED)
 
 include_directories(${LIB_INCLUDES})
 
