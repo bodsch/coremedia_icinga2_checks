@@ -109,6 +109,12 @@ add_executable(check_nodeexporter_disk ${CHECK_NE_DISK})
 target_link_libraries(check_nodeexporter_disk corelib ${LIB_REDOX} ${LIB_EV})
 
 
+file(GLOB CHECK_PUBLISHER check_publisher/*.cpp)
+add_executable(check_publisher ${CHECK_PUBLISHER})
+target_link_libraries(check_publisher corelib ${LIB_REDOX} ${LIB_EV})
+
+
+
 
 
 

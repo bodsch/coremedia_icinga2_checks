@@ -16,6 +16,7 @@ The following checks are currently available:
  - [`check_runlevel`](./README.md#check_runlevel)
  - [`check_sequencenumbers`](./README.md#check_sequencenumbers)
  - [`check_tomcat_memory`](./README.md#check_tomcat_memory)
+ - [`check_publisher`](./README.md#check_publisher)
 
 ## external dependencies
 
@@ -105,5 +106,11 @@ CRITICAL - 96.07% Perm Memory used<br>Commited: 126.69 MB<br>Used: 121.70 MB | c
 
 check_tomcat_memory -R moebius-monitoring.coremedia.vm  -H moebius-frontend.coremedia.vm -A caefeeder-live -M heap-mem
 OK - 43.61% Heap Memory used<br>Max: 999.06 MB<br>Commited: 178.98 MB<br>Used: 78.05 MB | max=1047592960 committed=187678720 used=81843824
+```
+
+### <a name="check_publisher"></a>check_publisher
+```
+check_publisher -R moebius-monitoring.coremedia.vm -H moebius-backend.coremedia.vm
+OK - connected to MLS: moebius-frontend.coremedia.vm - last publication result: unknown
 ```
 
