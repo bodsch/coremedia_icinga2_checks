@@ -98,6 +98,10 @@ int check( const std::string server_name ) {
 
     Json json(redis_data);
 
+    if( DEBUG == true ) {
+      std::cout << redis_data << std::endl;
+    }
+
     nlohmann::json memory = "";
     nlohmann::json swap = "";
     json.find("memory", memory);
