@@ -69,6 +69,11 @@ add_executable(check_tomcat_memory ${CHECK_TOMCAT_MEMORY})
 target_link_libraries(check_tomcat_memory corelib ${LIB_REDOX} ${LIB_EV})
 
 
+file(GLOB CHECK_TOMCAT_OPENFILES check_tomcat_openfiles/*.cpp)
+add_executable(check_tomcat_openfiles ${CHECK_TOMCAT_OPENFILES})
+target_link_libraries(check_tomcat_openfiles corelib ${LIB_REDOX} ${LIB_EV})
+
+
 file(GLOB CHECK_APP_CACHE check_app_cache/*.cpp)
 add_executable(check_app_cache ${CHECK_APP_CACHE})
 target_link_libraries(check_app_cache corelib ${LIB_REDOX} ${LIB_EV})
@@ -107,6 +112,11 @@ target_link_libraries(check_nodeexporter_memory corelib ${LIB_REDOX} ${LIB_EV})
 file(GLOB CHECK_NE_DISK check_nodeexporter_disk/*.cpp)
 add_executable(check_nodeexporter_disk ${CHECK_NE_DISK})
 target_link_libraries(check_nodeexporter_disk corelib ${LIB_REDOX} ${LIB_EV})
+
+
+file(GLOB CHECK_NE_OPENFILES check_nodeexporter_openfiles/*.cpp)
+add_executable(check_nodeexporter_openfiles ${CHECK_NE_OPENFILES})
+target_link_libraries(check_nodeexporter_openfiles corelib ${LIB_REDOX} ${LIB_EV})
 
 
 file(GLOB CHECK_PUBLISHER check_publisher/*.cpp)
